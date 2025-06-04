@@ -1,3 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', system-ui, sans-serif;
+  }
+
+  body {
+    @apply antialiased;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfccb 100%);
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white shadow-lg hover:bg-primary-700 hover:shadow-xl focus:ring-primary-500 transform hover:-translate-y-0.5;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-primary-700 border-2 border-primary-200 hover:bg-primary-50 hover:border-primary-300 focus:ring-primary-500 shadow-md hover:shadow-lg;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100;
+  }
+  
+  .card-hover {
+    @apply hover:-translate-y-1 hover:shadow-xl;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent;
+  }
+  
+  .hero-bg {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
+    background-image: 
+      radial-gradient(circle at 25% 25%, rgba(5, 150, 105, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(14, 165, 233, 0.1) 0%, transparent 50%);
+  }
+  
+  .mountain-silhouette {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300'%3E%3Cpath fill='%23059669' fill-opacity='0.1' d='M0,300 L0,200 L100,100 L200,150 L300,50 L400,100 L500,80 L600,120 L700,60 L800,90 L900,40 L1000,80 L1100,120 L1200,100 L1200,300 Z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: bottom;
+    background-size: cover;
+  }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .glass {
+    @apply bg-white bg-opacity-80 backdrop-blur-md border border-white border-opacity-20;
+  }
+}

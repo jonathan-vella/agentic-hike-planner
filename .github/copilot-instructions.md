@@ -1,0 +1,4 @@
+- The solution must meet the functionality as explained in the [README.md](../README.md) file.
+- The solution supports a demo as explained at [demo.md](../docs/demo.md), which defines how this should be deployed in Azure.
+- The architectural decisions and basis for the project in that document are only the inspiring foundation. It can and should always be challenged when needed and is not meant as the only truth, but a very useful context and grounding research.
+- The philosophy when architecting and implementing the project is to prime speed and simplicity over complexity. The goal is to deliver a solid and scalable architecture but simple starting implementation. Not building something complex from the start and then having to simplify it later. Remember we are delivering a new app to the market and we will need to rapidly adapt to what's really useful, evolving standards, etc. 

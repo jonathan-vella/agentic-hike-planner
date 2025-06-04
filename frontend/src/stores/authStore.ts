@@ -9,6 +9,7 @@ interface AuthStore {
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
+  signOut: () => void; // Alias for logout to match chat interface
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -33,6 +34,11 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
+        authService.logout();
+        set({ user: null, isAuthenticated: false });
+      },
+
+      signOut: () => {
         authService.logout();
         set({ user: null, isAuthenticated: false });
       },

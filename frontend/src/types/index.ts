@@ -114,6 +114,14 @@ export interface TrailFilters {
 }
 
 // Chat types
+export interface Message {
+  id: string;
+  content: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+  type?: 'text' | 'action' | 'trail-info' | 'trip-plan';
+}
+
 export interface ChatMessage {
   id: string;
   content: string;

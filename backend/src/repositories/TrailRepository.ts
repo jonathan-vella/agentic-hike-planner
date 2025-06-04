@@ -102,6 +102,8 @@ export class TrailRepository extends BaseRepository<Trail> {
       parameters,
     };
 
+    console.log('Executing Cosmos DB query:', querySpec);
+
     try {
       const [countResult, searchResult] = await Promise.all([
         this.container.items.query<number>(countQuerySpec).fetchAll(),
@@ -125,8 +127,23 @@ export class TrailRepository extends BaseRepository<Trail> {
   private applyFiltersToQuery(filters: TrailSearchFilters, whereConditions: string[], parameters: any[]): void {
     // Difficulty filter
     if (filters.difficulty && filters.difficulty.length > 0) {
-      whereConditions.push('c.characteristics.difficulty IN (@difficulties)');
-      parameters.push({ name: '@difficulties', value: filters.difficulty });
+      console.log('Applying difficulty filter:', filters.difficulty);
+      
+      if (filters.difficulty.length === 1) {
+        // Single difficulty value
+        whereConditions.push('c.characteristics.difficulty = @difficulty');
+        parameters.push({ name: '@difficulty', value: filters.difficulty[0] });
+      } else {
+        // Multiple difficulty values - build OR conditions
+        const difficultyConditions = filters.difficulty.map((_, index) => {
+          const paramName = `@difficulty${index}`;
+          parameters.push({ name: paramName, value: filters.difficulty[index] });
+          return `c.characteristics.difficulty = ${paramName}`;
+        });
+        whereConditions.push(`(${difficultyConditions.join(' OR ')})`);
+      }
+      
+      console.log('Added difficulty WHERE condition and parameters:', { whereConditions, parameters });
     }
 
     // Distance filter

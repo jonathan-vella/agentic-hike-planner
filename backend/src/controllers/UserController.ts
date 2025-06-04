@@ -7,7 +7,7 @@ interface UserProfile {
   name: string;
   preferences: {
     experienceLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-    preferredDifficulty: ('easy' | 'moderate' | 'hard' | 'expert')[];
+    preferredDifficulty: ('beginner' | 'intermediate' | 'advanced' | 'expert')[];
     maxHikeDistance: number;
     fitnessLevel: 'low' | 'moderate' | 'high' | 'very_high';
   };
@@ -28,7 +28,7 @@ const mockUserProfiles: UserProfile[] = [
     name: 'Mock User',
     preferences: {
       experienceLevel: 'intermediate',
-      preferredDifficulty: ['moderate', 'hard'],
+      preferredDifficulty: ['intermediate', 'advanced'],
       maxHikeDistance: 12,
       fitnessLevel: 'high',
     },

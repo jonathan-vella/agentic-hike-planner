@@ -7,7 +7,7 @@ import type { Trail, TrailFilters } from '../../types';
 export const TrailsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
-    difficulty: 'all' as 'easy' | 'moderate' | 'hard' | 'all',
+    difficulty: 'all' as 'beginner' | 'intermediate' | 'advanced' | 'expert' | 'all',
     maxDistance: undefined as number | undefined,
     maxDuration: undefined as number | undefined,
     location: '',
@@ -19,7 +19,7 @@ export const TrailsPage: React.FC = () => {
     difficulty: filters.difficulty === 'all' ? undefined : filters.difficulty,
     maxDistance: filters.maxDistance,
     maxDuration: filters.maxDuration,
-    location: searchQuery || filters.location,
+    location: (searchQuery || filters.location) || undefined,
     features: filters.features,
   };
 
@@ -85,14 +85,15 @@ export const TrailsPage: React.FC = () => {
                   value={filters.difficulty || 'all'}
                   onChange={(e) => setFilters(prev => ({
                     ...prev,
-                    difficulty: e.target.value as 'easy' | 'moderate' | 'hard' | 'all'
+                    difficulty: e.target.value as 'beginner' | 'intermediate' | 'advanced' | 'expert' | 'all'
                   }))}
                   className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border-0 rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:shadow-xl transition-all duration-300"
                 >
                   <option value="all">All Difficulties</option>
-                  <option value="easy">Easy</option>
-                  <option value="moderate">Moderate</option>
-                  <option value="hard">Hard</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="expert">Expert</option>
                 </select>
               </div>
               
@@ -249,9 +250,10 @@ export const TrailsPage: React.FC = () => {
 const TrailCard: React.FC<{ trail: Trail }> = ({ trail }) => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return 'text-green-700 bg-green-100 border-green-200';
-      case 'moderate': return 'text-yellow-700 bg-yellow-100 border-yellow-200';
-      case 'hard': return 'text-red-700 bg-red-100 border-red-200';
+      case 'beginner': return 'text-green-700 bg-green-100 border-green-200';
+      case 'intermediate': return 'text-yellow-700 bg-yellow-100 border-yellow-200';
+      case 'advanced': return 'text-orange-700 bg-orange-100 border-orange-200';
+      case 'expert': return 'text-red-700 bg-red-100 border-red-200';
       default: return 'text-gray-700 bg-gray-100 border-gray-200';
     }
   };
@@ -260,26 +262,18 @@ const TrailCard: React.FC<{ trail: Trail }> = ({ trail }) => {
     <Card glass className="group overflow-hidden hover:shadow-2xl transition-all duration-300">
       <div className="relative">
         <div className="w-full h-56 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-xl flex items-center justify-center overflow-hidden">
-          {trail.images?.[0] ? (
-            <img 
-              src={trail.images[0]} 
-              alt={trail.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-gray-400">
-              <svg className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2z" />
-              </svg>
-              <span className="text-sm">No image</span>
-            </div>
-          )}
+          <div className="flex flex-col items-center justify-center text-gray-400">
+            <svg className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2z" />
+            </svg>
+            <span className="text-sm">{trail.characteristics.trailType} trail</span>
+          </div>
         </div>
         
         {/* Difficulty Badge */}
         <div className="absolute top-3 left-3">
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getDifficultyColor(trail.difficulty)}`}>
-            {trail.difficulty.charAt(0).toUpperCase() + trail.difficulty.slice(1)}
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getDifficultyColor(trail.characteristics.difficulty)}`}>
+            {trail.characteristics.difficulty.charAt(0).toUpperCase() + trail.characteristics.difficulty.slice(1)}
           </span>
         </div>
 
@@ -288,7 +282,7 @@ const TrailCard: React.FC<{ trail: Trail }> = ({ trail }) => {
           <svg className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
-          <span className="text-xs font-semibold text-gray-700">{trail.rating}</span>
+          <span className="text-xs font-semibold text-gray-700">{trail.ratings?.average || 'N/A'}</span>
         </div>
       </div>
       
@@ -302,21 +296,21 @@ const TrailCard: React.FC<{ trail: Trail }> = ({ trail }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            {trail.location.city}, {trail.location.state}
+            {trail.location.park}, {trail.location.region}
           </p>
         </div>
         
         <div className="grid grid-cols-3 gap-4 text-center">
           <div className="bg-primary-50 rounded-lg p-3">
-            <div className="text-lg font-bold text-primary-700">{trail.distance}</div>
+            <div className="text-lg font-bold text-primary-700">{trail.characteristics.distance.toFixed(1)}</div>
             <div className="text-xs text-gray-600">miles</div>
           </div>
           <div className="bg-secondary-50 rounded-lg p-3">
-            <div className="text-lg font-bold text-secondary-700">{trail.elevation}</div>
+            <div className="text-lg font-bold text-secondary-700">{trail.characteristics.elevationGain}</div>
             <div className="text-xs text-gray-600">ft gain</div>
           </div>
           <div className="bg-accent-50 rounded-lg p-3">
-            <div className="text-lg font-bold text-accent-700">{trail.duration}</div>
+            <div className="text-lg font-bold text-accent-700">{trail.characteristics.duration.min}-{trail.characteristics.duration.max}</div>
             <div className="text-xs text-gray-600">hours</div>
           </div>
         </div>
@@ -327,17 +321,30 @@ const TrailCard: React.FC<{ trail: Trail }> = ({ trail }) => {
 
         {/* Features */}
         <div className="flex flex-wrap gap-2">
-          {trail.features?.slice(0, 3).map((feature: string) => (
+          {trail.safety?.commonHazards?.slice(0, 2).map((hazard: string) => (
             <span 
-              key={feature}
-              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+              key={hazard}
+              className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full"
             >
-              {feature}
+              {hazard}
             </span>
           ))}
-          {trail.features && trail.features.length > 3 && (
-            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-              +{trail.features.length - 3} more
+          {trail.features?.wildlife?.slice(0, 2).map((animal: string) => (
+            <span 
+              key={animal}
+              className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
+            >
+              {animal}
+            </span>
+          ))}
+          {trail.features?.scenicViews && (
+            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+              Scenic Views
+            </span>
+          )}
+          {trail.features?.waterFeatures && (
+            <span className="px-2 py-1 bg-cyan-100 text-cyan-700 text-xs rounded-full">
+              Water Features
             </span>
           )}
         </div>

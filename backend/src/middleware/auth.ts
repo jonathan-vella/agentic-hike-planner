@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { createError } from './errorHandler';
+import { config } from '../config';
 
 // Extend Request type to include user
 declare global {
@@ -21,6 +22,35 @@ export const authenticateToken = (
   res: Response,
   next: NextFunction
 ): void => {
+  // In development mode, provide a mock user if no token is present
+  if (config.nodeEnv === 'development') {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      // Auto-authenticate with mock user in development
+      req.user = {
+        id: 'mock-user-id',
+        email: 'user@example.com',
+        name: 'Mock User',
+      };
+      next();
+      return;
+    }
+
+    // Validate mock token
+    if (token === 'mock-valid-token') {
+      req.user = {
+        id: 'mock-user-id',
+        email: 'user@example.com',
+        name: 'Mock User',
+      };
+      next();
+      return;
+    }
+  }
+
+  // Production authentication logic
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 

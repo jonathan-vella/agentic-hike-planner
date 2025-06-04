@@ -40,33 +40,73 @@ export interface CreateTripRequest {
   trailIds: string[];
 }
 
-// Trail types  
+// Trail types - Updated to match backend data structure
 export interface Trail {
   id: string;
   name: string;
   description: string;
-  difficulty: 'easy' | 'moderate' | 'hard';
-  distance: number;
-  elevation: number;
-  duration: number;
-  location: Location;
-  images: string[];
-  features: string[];
-  rating: number;
-  reviewCount: number;
-}
-
-export interface Location {
-  latitude: number;
-  longitude: number;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
+  location: {
+    region: string;
+    park: string;
+    country: string;
+    coordinates: {
+      start: {
+        longitude: number;
+        latitude: number;
+      };
+      end: {
+        longitude: number;
+        latitude: number;
+      };
+      waypoints: any[];
+    };
+  };
+  characteristics: {
+    difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    distance: number;
+    duration: {
+      min: number;
+      max: number;
+    };
+    elevationGain: number;
+    elevationProfile: number[];
+    trailType: string;
+    surface: string[];
+  };
+  features: {
+    scenicViews: boolean;
+    waterFeatures: boolean;
+    wildlife: string[];
+    seasonality: {
+      bestMonths: number[];
+      accessibleMonths: number[];
+    };
+  };
+  safety: {
+    riskLevel: number;
+    commonHazards: string[];
+    requiresPermit: boolean;
+    emergencyContacts: string[];
+  };
+  amenities: {
+    parking: boolean;
+    restrooms: boolean;
+    camping: boolean;
+    drinkingWater: boolean;
+  };
+  ratings: {
+    average: number;
+    count: number;
+    breakdown: { [key: number]: number };
+  };
+  isActive: boolean;
+  partitionKey: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TrailFilters {
-  difficulty?: 'easy' | 'moderate' | 'hard';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   maxDistance?: number;
   maxDuration?: number;
   location?: string;

@@ -10,7 +10,14 @@ const apiClient = axios.create({
 
 // Request interceptor for auth
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth-token');
+  let token = localStorage.getItem('auth-token');
+  
+  // In development, provide a default mock token if none exists
+  if (!token && import.meta.env.DEV) {
+    token = 'mock-valid-token';
+    localStorage.setItem('auth-token', token);
+  }
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

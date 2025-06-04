@@ -24,7 +24,9 @@ export const DashboardPage: React.FC = () => {
     totalTrips: trips.length,
     completedTrips: trips.filter(trip => trip.status === 'completed').length,
     upcomingTrips: trips.filter(trip => trip.status === 'planned' || trip.status === 'draft').length,
-    totalDistance: userStats?.totalDistance || trips.reduce((sum, trip) => sum + (trip.trails.reduce((trailSum, trail) => trailSum + trail.distance, 0)), 0),
+    totalDistance: userStats?.totalDistance || trips.reduce((sum, trip) => {
+      return sum + (trip.trails?.reduce((trailSum, trail) => trailSum + (trail.characteristics?.distance || 0), 0) || 0);
+    }, 0),
   };
 
   // Get recent trips (last 5, sorted by creation date)
@@ -36,7 +38,7 @@ export const DashboardPage: React.FC = () => {
       title: trip.title,
       date: trip.startDate,
       status: trip.status,
-      distance: trip.trails.reduce((sum, trail) => sum + trail.distance, 0),
+      distance: trip.trails?.reduce((sum, trail) => sum + (trail.characteristics?.distance || 0), 0) || 0,
     }));
 
   return (

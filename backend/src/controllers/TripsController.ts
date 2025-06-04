@@ -9,7 +9,7 @@ interface Trip {
   description?: string;
   startDate: string;
   endDate: string;
-  difficulty: 'easy' | 'moderate' | 'hard' | 'expert';
+  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   location: {
     name: string;
     latitude: number;
@@ -28,7 +28,7 @@ const mockTrips: Trip[] = [
     description: 'Challenging hike to the summit of Mount Washington',
     startDate: '2024-07-15T08:00:00Z',
     endDate: '2024-07-15T18:00:00Z',
-    difficulty: 'hard',
+    difficulty: 'advanced',
     location: {
       name: 'Mount Washington, NH',
       latitude: 44.2706,

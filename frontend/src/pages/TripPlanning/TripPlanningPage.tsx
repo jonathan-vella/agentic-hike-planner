@@ -7,7 +7,7 @@ export const TripPlanningPage: React.FC = () => {
     description: '',
     startDate: '',
     endDate: '',
-    difficulty: 'moderate',
+    difficulty: 'intermediate',
     maxDistance: '',
   });
 
@@ -129,9 +129,10 @@ export const TripPlanningPage: React.FC = () => {
                             onChange={handleInputChange}
                             className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border-0 rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:shadow-xl transition-all duration-300"
                           >
-                            <option value="easy">🟢 Easy - Beginner friendly</option>
-                            <option value="moderate">🟡 Moderate - Some experience needed</option>
-                            <option value="hard">🔴 Hard - Expert level</option>
+                            <option value="beginner">🟢 Beginner - New to hiking</option>
+                            <option value="intermediate">🟡 Intermediate - Some experience needed</option>
+                            <option value="advanced">🟠 Advanced - Experienced hiker</option>
+                            <option value="expert">🔴 Expert - Professional level</option>
                           </select>
                         </div>
                       </div>

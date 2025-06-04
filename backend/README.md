@@ -106,7 +106,7 @@ Currently uses mock authentication. To access protected endpoints:
 
 ### Search Trails
 ```bash
-curl "http://localhost:3001/api/trails/search?difficulty=moderate&limit=5"
+curl "http://localhost:3001/api/trails/search?difficulty=intermediate&limit=5"
 ```
 
 ### Create a Trip
@@ -117,7 +117,7 @@ curl -X POST -H "Authorization: Bearer mock-valid-token" \
     "name": "Weekend Hike",
     "startDate": "2025-08-01T08:00:00Z",
     "endDate": "2025-08-01T16:00:00Z",
-    "difficulty": "moderate",
+    "difficulty": "intermediate",
     "location": {
       "name": "Mount Washington, NH",
       "latitude": 44.2706,

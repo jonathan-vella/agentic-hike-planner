@@ -12,7 +12,7 @@ router.use('/trips', tripsRouter);
 router.use('/trails', trailsRouter);
 router.use('/user', userRouter);
 
-// For backward compatibility, also mount auth routes at root level
+// Mount auth routes at /auth for compatibility (same as user routes)
 router.use('/auth', userRouter);
 
 export default router;

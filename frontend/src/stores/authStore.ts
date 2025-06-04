@@ -52,6 +52,25 @@ export const useAuthStore = create<AuthStore>()(
 
       checkAuth: async () => {
         const token = localStorage.getItem('auth-token');
+        
+        // In development, auto-login with mock user if no token
+        if (!token && import.meta.env.DEV) {
+          const mockUser: UserProfile = {
+            id: 'mock-user-id',
+            email: 'user@example.com',
+            name: 'Mock User',
+            avatar: '/api/placeholder/100/100',
+            preferences: {
+              difficultyLevel: 'intermediate',
+              maxDistance: 10,
+              preferredTerrains: ['Mountain', 'Forest'],
+            },
+          };
+          localStorage.setItem('auth-token', 'mock-valid-token');
+          set({ user: mockUser, isAuthenticated: true });
+          return;
+        }
+        
         if (!token) {
           set({ user: null, isAuthenticated: false });
           return;

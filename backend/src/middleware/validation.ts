@@ -52,7 +52,7 @@ export const schemas = {
     description: Joi.string().max(500).optional(),
     startDate: Joi.date().iso().min('now').required(),
     endDate: Joi.date().iso().min(Joi.ref('startDate')).required(),
-    difficulty: Joi.string().valid('easy', 'moderate', 'hard', 'expert').required(),
+    difficulty: Joi.string().valid('beginner', 'intermediate', 'advanced', 'expert').required(),
     location: Joi.object({
       name: Joi.string().required(),
       latitude: Joi.number().min(-90).max(90).required(),
@@ -65,7 +65,7 @@ export const schemas = {
     description: Joi.string().max(500).optional(),
     startDate: Joi.date().iso().optional(),
     endDate: Joi.date().iso().optional(),
-    difficulty: Joi.string().valid('easy', 'moderate', 'hard', 'expert').optional(),
+    difficulty: Joi.string().valid('beginner', 'intermediate', 'advanced', 'expert').optional(),
     location: Joi.object({
       name: Joi.string().required(),
       latitude: Joi.number().min(-90).max(90).required(),
@@ -80,8 +80,8 @@ export const schemas = {
 
   // Trail search schema
   trailSearch: Joi.object({
-    location: Joi.string().min(2).optional(),
-    difficulty: Joi.string().valid('easy', 'moderate', 'hard', 'expert').optional(),
+    location: Joi.string().min(1).allow('').optional(),
+    difficulty: Joi.string().valid('beginner', 'intermediate', 'advanced', 'expert').optional(),
     maxDistance: Joi.number().positive().optional(),
     limit: Joi.number().integer().min(1).max(100).default(20),
     offset: Joi.number().integer().min(0).default(0),

@@ -1,4 +1,5 @@
 import { CosmosClient, Database, Container, ContainerDefinition } from '@azure/cosmos';
+import { DefaultAzureCredential, ClientSecretCredential } from '@azure/identity';
 import { config } from '../config';
 
 export class DatabaseService {
@@ -11,14 +12,29 @@ export class DatabaseService {
     this.isTestMode = testMode;
     
     if (!testMode) {
-      if (!config.azure.cosmosDb.endpoint || !config.azure.cosmosDb.key) {
-        throw new Error('Azure Cosmos DB configuration is missing');
+      if (!config.azure.cosmosDb.endpoint) {
+        throw new Error('Azure Cosmos DB endpoint is required');
       }
 
-      this.client = new CosmosClient({
-        endpoint: config.azure.cosmosDb.endpoint,
-        key: config.azure.cosmosDb.key,
-      });
+      // Try different authentication methods
+      if (config.azure.cosmosDb.key) {
+        // Use access key authentication
+        this.client = new CosmosClient({
+          endpoint: config.azure.cosmosDb.endpoint,
+          key: config.azure.cosmosDb.key,
+        });
+      } else {
+        // Use Azure AD authentication with DefaultAzureCredential
+        try {
+          const credential = new DefaultAzureCredential();
+          this.client = new CosmosClient({
+            endpoint: config.azure.cosmosDb.endpoint,
+            aadCredentials: credential,
+          });
+        } catch (error) {
+          throw new Error('Azure Cosmos DB authentication failed. Ensure either access key is provided or Azure AD authentication is configured.');
+        }
+      }
     }
   }
 
@@ -137,8 +153,16 @@ export class DatabaseService {
     return container;
   }
 
-  async healthCheck(): Promise<{ status: string; database: string }> {
+  async healthCheck(): Promise<{ status: string; database: string; authenticationType?: string }> {
     try {
+      if (this.isTestMode) {
+        return {
+          status: 'healthy (test mode)',
+          database: 'test',
+          authenticationType: 'test',
+        };
+      }
+
       if (!this.database) {
         throw new Error('Database not initialized');
       }
@@ -146,14 +170,20 @@ export class DatabaseService {
       // Simple read operation to check connectivity
       await this.database.read();
       
+      // Determine authentication type
+      const authenticationType = config.azure.cosmosDb.key ? 'access-key' : 'azure-ad';
+      
       return {
         status: 'healthy',
         database: this.database.id,
+        authenticationType,
       };
     } catch (error) {
+      console.error('Database health check failed:', error);
       return {
         status: 'unhealthy',
         database: 'unknown',
+        authenticationType: 'unknown',
       };
     }
   }

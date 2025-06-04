@@ -1,0 +1,34 @@
+{
+  "name": "agentic-hike-planner",
+  "version": "1.0.0",
+  "description": "An AI-powered hiking trip planning application that helps outdoor enthusiasts discover, plan, and organize their perfect hiking adventures. Built with TypeScript and powered by Azure AI Foundry agents.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:integration": "jest --testPathPattern='integration'",
+    "test:unit": "jest --testPathPattern='unit'",
+    "test:azure": "jest --testPathPattern='azure' --runInBand"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielmeppiel/agentic-hike-planner.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/danielmeppiel/agentic-hike-planner/issues"
+  },
+  "homepage": "https://github.com/danielmeppiel/agentic-hike-planner#readme",
+  "devDependencies": {
+    "@azure/cosmos": "^4.4.1",
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.3.4",
+    "typescript": "^5.8.3"
+  }
+}

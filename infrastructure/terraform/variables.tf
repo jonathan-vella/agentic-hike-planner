@@ -10,7 +10,7 @@ variable "environment" {
 variable "location" {
   description = "The Azure region for resources"
   type        = string
-  default     = "East US"
+  default     = "eastus"
 }
 
 variable "app_name" {

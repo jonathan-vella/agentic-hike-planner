@@ -19,10 +19,10 @@ app.set('trust proxy', 1);
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      defaultSrc: ['\'self\''],
+      styleSrc: ['\'self\'', '\'unsafe-inline\''],
+      scriptSrc: ['\'self\''],
+      imgSrc: ['\'self\'', 'data:', 'https:'],
     },
   },
 }));
@@ -55,7 +55,7 @@ app.use(errorHandler);
 
 // Graceful shutdown handling
 const server = app.listen(PORT, () => {
-  structuredLogger.info(`Server started successfully`, {
+  structuredLogger.info('Server started successfully', {
     port: PORT,
     environment: config.nodeEnv,
     version: config.api.version,

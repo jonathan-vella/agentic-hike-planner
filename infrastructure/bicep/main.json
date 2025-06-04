@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "6043375954075864871"
+      "templateHash": "14295486187400493722"
     }
   },
   "parameters": {
@@ -55,9 +55,10 @@
     }
   },
   "variables": {
+    "uniqueSuffix": "[take(uniqueString(resourceGroup().id), 6)]",
     "resourceNames": {
-      "cosmosDbAccount": "[format('{0}-cosmos-{1}-{2}', parameters('appName'), parameters('environment'), uniqueString(resourceGroup().id))]",
-      "keyVault": "[format('{0}-kv-{1}-{2}', parameters('appName'), parameters('environment'), uniqueString(resourceGroup().id))]"
+      "cosmosDbAccount": "[format('{0}-cosmos-{1}-{2}', parameters('appName'), parameters('environment'), variables('uniqueSuffix'))]",
+      "keyVault": "[format('hkv-{0}-{1}', parameters('environment'), variables('uniqueSuffix'))]"
     }
   },
   "resources": {
@@ -78,7 +79,6 @@
         "enableRbacAuthorization": true,
         "enableSoftDelete": true,
         "softDeleteRetentionInDays": "[if(equals(parameters('environment'), 'prod'), 90, 7)]",
-        "enablePurgeProtection": "[equals(parameters('environment'), 'prod')]",
         "publicNetworkAccess": "Enabled",
         "networkAcls": {
           "defaultAction": "Allow",
@@ -96,7 +96,7 @@
       "apiVersion": "2023-07-01",
       "name": "[format('{0}/{1}', variables('resourceNames').keyVault, 'cosmos-db-primary-key')]",
       "properties": {
-        "value": "[reference('cosmosDb').outputs.cosmosDbPrimaryKey.value]",
+        "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'cosmosDb-deployment'), '2022-09-01').cosmosDbPrimaryKey]",
         "contentType": "text/plain"
       },
       "dependsOn": [
@@ -109,7 +109,7 @@
       "apiVersion": "2023-07-01",
       "name": "[format('{0}/{1}', variables('resourceNames').keyVault, 'cosmos-db-endpoint')]",
       "properties": {
-        "value": "[reference('cosmosDb').outputs.cosmosDbEndpoint.value]",
+        "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'cosmosDb-deployment'), '2022-09-01').cosmosDbEndpoint]",
         "contentType": "text/plain"
       },
       "dependsOn": [
@@ -157,7 +157,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "11969242709196881975"
+              "templateHash": "18345431576666907485"
             }
           },
           "parameters": {
@@ -234,122 +234,15 @@
             "containers": [
               {
                 "name": "users",
-                "partitionKey": "/partitionKey",
-                "indexingPolicy": {
-                  "includedPaths": [
-                    {
-                      "path": "/email/?"
-                    },
-                    {
-                      "path": "/fitnessLevel/?"
-                    },
-                    {
-                      "path": "/location/region/?"
-                    },
-                    {
-                      "path": "/createdAt/?"
-                    }
-                  ],
-                  "excludedPaths": [
-                    {
-                      "path": "/*"
-                    }
-                  ]
-                }
+                "partitionKey": "/partitionKey"
               },
               {
                 "name": "trips",
-                "partitionKey": "/partitionKey",
-                "indexingPolicy": {
-                  "includedPaths": [
-                    {
-                      "path": "/userId/?"
-                    },
-                    {
-                      "path": "/status/?"
-                    },
-                    {
-                      "path": "/dates/startDate/?"
-                    },
-                    {
-                      "path": "/dates/endDate/?"
-                    },
-                    {
-                      "path": "/location/region/?"
-                    },
-                    {
-                      "path": "/createdAt/?"
-                    }
-                  ],
-                  "excludedPaths": [
-                    {
-                      "path": "/*"
-                    }
-                  ]
-                }
+                "partitionKey": "/partitionKey"
               },
               {
                 "name": "trails",
-                "partitionKey": "/partitionKey",
-                "indexingPolicy": {
-                  "includedPaths": [
-                    {
-                      "path": "/characteristics/difficulty/?"
-                    },
-                    {
-                      "path": "/characteristics/distance/?"
-                    },
-                    {
-                      "path": "/characteristics/duration/?"
-                    },
-                    {
-                      "path": "/location/region/?"
-                    },
-                    {
-                      "path": "/location/country/?"
-                    },
-                    {
-                      "path": "/ratings/average/?"
-                    },
-                    {
-                      "path": "/isActive/?"
-                    }
-                  ],
-                  "excludedPaths": [
-                    {
-                      "path": "/*"
-                    }
-                  ]
-                }
-              },
-              {
-                "name": "recommendations",
-                "partitionKey": "/partitionKey",
-                "defaultTtl": 2592000,
-                "indexingPolicy": {
-                  "includedPaths": [
-                    {
-                      "path": "/userId/?"
-                    },
-                    {
-                      "path": "/tripId/?"
-                    },
-                    {
-                      "path": "/confidence/?"
-                    },
-                    {
-                      "path": "/createdAt/?"
-                    },
-                    {
-                      "path": "/expiresAt/?"
-                    }
-                  ],
-                  "excludedPaths": [
-                    {
-                      "path": "/*"
-                    }
-                  ]
-                }
+                "partitionKey": "/partitionKey"
               }
             ]
           },
@@ -364,37 +257,20 @@
                 "enableFreeTier": "[parameters('enableFreeTier')]",
                 "databaseAccountOfferType": "Standard",
                 "consistencyPolicy": {
-                  "defaultConsistencyLevel": "[variables('cosmosDbSettings')[parameters('environment')].consistencyLevel]",
-                  "maxStalenessPrefix": "[if(equals(variables('cosmosDbSettings')[parameters('environment')].consistencyLevel, 'BoundedStaleness'), 10, null())]",
-                  "maxIntervalInSeconds": "[if(equals(variables('cosmosDbSettings')[parameters('environment')].consistencyLevel, 'BoundedStaleness'), 5, null())]"
+                  "defaultConsistencyLevel": "[variables('cosmosDbSettings')[parameters('environment')].consistencyLevel]"
                 },
+                "enableAutomaticFailover": "[variables('cosmosDbSettings')[parameters('environment')].enableAutomaticFailover]",
+                "enableMultipleWriteLocations": "[variables('cosmosDbSettings')[parameters('environment')].enableMultipleWriteLocations]",
+                "enableAnalyticalStorage": false,
+                "networkAclBypass": "AzureServices",
+                "publicNetworkAccess": "Enabled",
                 "locations": [
                   {
                     "locationName": "[parameters('location')]",
                     "failoverPriority": 0,
                     "isZoneRedundant": "[equals(parameters('environment'), 'prod')]"
                   }
-                ],
-                "capabilities": "[if(equals(parameters('throughputMode'), 'serverless'), createArray(createObject('name', 'EnableServerless')), createArray())]",
-                "enableAutomaticFailover": "[variables('cosmosDbSettings')[parameters('environment')].enableAutomaticFailover]",
-                "enableMultipleWriteLocations": "[variables('cosmosDbSettings')[parameters('environment')].enableMultipleWriteLocations]",
-                "enableAnalyticalStorage": false,
-                "analyticalStorageConfiguration": {
-                  "schemaType": "WellDefined"
-                },
-                "backup": {
-                  "type": "Periodic",
-                  "periodicModeProperties": {
-                    "backupIntervalInMinutes": "[if(equals(parameters('environment'), 'prod'), 240, 1440)]",
-                    "backupRetentionIntervalInHours": "[if(equals(parameters('environment'), 'prod'), 720, 168)]",
-                    "backupStorageRedundancy": "[if(equals(parameters('environment'), 'prod'), 'Geo', 'Local')]"
-                  }
-                },
-                "networkAclBypass": "AzureServices",
-                "publicNetworkAccess": "Enabled",
-                "ipRules": [],
-                "isVirtualNetworkFilterEnabled": false,
-                "virtualNetworkRules": []
+                ]
               },
               "tags": {
                 "Environment": "[parameters('environment')]",
@@ -419,7 +295,28 @@
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
               "apiVersion": "2023-04-15",
               "name": "[format('{0}/{1}/{2}', parameters('cosmosDbAccountName'), 'HikePlannerDB', variables('containers')[copyIndex()].name)]",
-              "properties": "[if(equals(parameters('throughputMode'), 'serverless'), createObject('resource', createObject('id', variables('containers')[copyIndex()].name, 'partitionKey', createObject('paths', createArray(variables('containers')[copyIndex()].partitionKey), 'kind', 'Hash'), 'indexingPolicy', variables('containers')[copyIndex()].indexingPolicy, 'defaultTtl', if(contains(variables('containers')[copyIndex()], 'defaultTtl'), variables('containers')[copyIndex()].defaultTtl, null()))), createObject('resource', createObject('id', variables('containers')[copyIndex()].name, 'partitionKey', createObject('paths', createArray(variables('containers')[copyIndex()].partitionKey), 'kind', 'Hash'), 'indexingPolicy', variables('containers')[copyIndex()].indexingPolicy, 'defaultTtl', if(contains(variables('containers')[copyIndex()], 'defaultTtl'), variables('containers')[copyIndex()].defaultTtl, null())), 'options', createObject('throughput', parameters('minThroughput'))))]",
+              "properties": "[if(equals(parameters('throughputMode'), 'serverless'), createObject('resource', createObject('id', variables('containers')[copyIndex()].name, 'partitionKey', createObject('paths', createArray(variables('containers')[copyIndex()].partitionKey), 'kind', 'Hash'))), createObject('resource', createObject('id', variables('containers')[copyIndex()].name, 'partitionKey', createObject('paths', createArray(variables('containers')[copyIndex()].partitionKey), 'kind', 'Hash')), 'options', createObject('throughput', parameters('minThroughput'))))]",
+              "dependsOn": [
+                "database"
+              ]
+            },
+            "recommendationsContainer": {
+              "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
+              "apiVersion": "2023-04-15",
+              "name": "[format('{0}/{1}/{2}', parameters('cosmosDbAccountName'), 'HikePlannerDB', 'recommendations')]",
+              "properties": {
+                "resource": {
+                  "id": "recommendations",
+                  "partitionKey": {
+                    "paths": [
+                      "/partitionKey"
+                    ],
+                    "kind": "Hash"
+                  },
+                  "defaultTtl": 2592000
+                },
+                "options": "[if(equals(parameters('throughputMode'), 'serverless'), createObject(), createObject('throughput', parameters('minThroughput')))]"
+              },
               "dependsOn": [
                 "database"
               ]
@@ -441,14 +338,14 @@
               "value": "[reference('cosmosDbAccount').documentEndpoint]"
             },
             "cosmosDbPrimaryKey": {
-              "type": "string",
+              "type": "securestring",
               "metadata": {
                 "description": "The primary key of the Cosmos DB account"
               },
               "value": "[listKeys('cosmosDbAccount', '2023-04-15').primaryMasterKey]"
             },
             "cosmosDbConnectionString": {
-              "type": "string",
+              "type": "securestring",
               "metadata": {
                 "description": "The connection string of the Cosmos DB account"
               },
@@ -480,23 +377,23 @@
     },
     "cosmosDbEndpoint": {
       "type": "string",
-      "value": "[reference('cosmosDb').outputs.cosmosDbEndpoint.value]"
+      "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'cosmosDb-deployment'), '2022-09-01').cosmosDbEndpoint]"
     },
     "cosmosDbAccountName": {
       "type": "string",
-      "value": "[reference('cosmosDb').outputs.cosmosDbAccountName.value]"
+      "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'cosmosDb-deployment'), '2022-09-01').cosmosDbAccountName]"
     },
     "cosmosDbDatabaseName": {
       "type": "string",
-      "value": "[reference('cosmosDb').outputs.databaseName.value]"
+      "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'cosmosDb-deployment'), '2022-09-01').databaseName]"
     },
     "cosmosDbPrimaryKey": {
-      "type": "string",
-      "value": "[reference('cosmosDb').outputs.cosmosDbPrimaryKey.value]"
+      "type": "securestring",
+      "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'cosmosDb-deployment'), '2022-09-01').cosmosDbPrimaryKey]"
     },
     "cosmosDbConnectionString": {
-      "type": "string",
-      "value": "[reference('cosmosDb').outputs.cosmosDbConnectionString.value]"
+      "type": "securestring",
+      "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'cosmosDb-deployment'), '2022-09-01').cosmosDbConnectionString]"
     },
     "keyVaultName": {
       "type": "string",

@@ -8,18 +8,18 @@ export class UserRepository extends BaseRepository<UserProfile> {
   }
 
   async createUser(userData: CreateUserRequest): Promise<UserProfile> {
+    // Generate a unique ID for the user first
+    const userId = require('crypto').randomUUID();
+    
     const userDocument = {
       ...userData,
-      partitionKey: '', // Will be set to userId after creation
+      id: userId,
+      partitionKey: userId, // Set partition key to be the same as user ID
       isActive: true,
     };
 
-    const createdUser = await super.create(userDocument as Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'>);
-    
-    // Update partition key to be the user ID
-    return await this.update(createdUser.id, createdUser.id, {
-      partitionKey: createdUser.id,
-    });
+    const createdUser = await super.create(userDocument as Omit<UserProfile, 'createdAt' | 'updatedAt'>);
+    return createdUser;
   }
 
   async findByEmail(email: string): Promise<UserProfile | null> {

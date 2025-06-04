@@ -17,10 +17,11 @@ param enableCosmosDbFreeTier bool = false
 @allowed(['provisioned', 'serverless'])
 param cosmosDbThroughputMode string = 'provisioned'
 
-// Generate unique names based on environment
+// Generate unique names based on environment (Key Vault names must be 3-24 chars)
+var uniqueSuffix = take(uniqueString(resourceGroup().id), 6)
 var resourceNames = {
-  cosmosDbAccount: '${appName}-cosmos-${environment}-${uniqueString(resourceGroup().id)}'
-  keyVault: '${appName}-kv-${environment}-${uniqueString(resourceGroup().id)}'
+  cosmosDbAccount: '${appName}-cosmos-${environment}-${uniqueSuffix}'
+  keyVault: 'hkv-${environment}-${uniqueSuffix}'  // Shortened for 24-char limit
 }
 
 // Cosmos DB Module - Phase 1: Intentionally inefficient configuration for demo
@@ -54,7 +55,6 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: environment == 'prod' ? 90 : 7
-    enablePurgeProtection: environment == 'prod'
     publicNetworkAccess: 'Enabled'
     networkAcls: {
       defaultAction: 'Allow'
@@ -93,6 +93,8 @@ output resourceNames object = resourceNames
 output cosmosDbEndpoint string = cosmosDb.outputs.cosmosDbEndpoint
 output cosmosDbAccountName string = cosmosDb.outputs.cosmosDbAccountName
 output cosmosDbDatabaseName string = cosmosDb.outputs.databaseName
+@secure()
 output cosmosDbPrimaryKey string = cosmosDb.outputs.cosmosDbPrimaryKey
+@secure()
 output cosmosDbConnectionString string = cosmosDb.outputs.cosmosDbConnectionString
 output keyVaultName string = keyVault.name

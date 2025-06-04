@@ -1,4 +1,4 @@
-import { databaseService } from './database';
+import { DatabaseService } from './database';
 import { UserRepository, TripRepository, TrailRepository, RecommendationRepository } from '../repositories';
 import { MockDataGenerator } from './mockDataGenerator';
 
@@ -8,17 +8,20 @@ export class DataSeeder {
   private trailRepository: TrailRepository;
   private recommendationRepository: RecommendationRepository;
   private mockGenerator: MockDataGenerator;
+  private databaseService: DatabaseService;
 
-  constructor() {
+  constructor(databaseService?: DatabaseService) {
     this.mockGenerator = new MockDataGenerator();
+    // Use provided database service or import the singleton
+    this.databaseService = databaseService || require('./database').databaseService;
   }
 
   async initialize(): Promise<void> {
     // Initialize repositories
-    this.userRepository = new UserRepository(databaseService.getContainer('users'));
-    this.tripRepository = new TripRepository(databaseService.getContainer('trips'));
-    this.trailRepository = new TrailRepository(databaseService.getContainer('trails'));
-    this.recommendationRepository = new RecommendationRepository(databaseService.getContainer('recommendations'));
+    this.userRepository = new UserRepository(this.databaseService.getContainer('users'));
+    this.tripRepository = new TripRepository(this.databaseService.getContainer('trips'));
+    this.trailRepository = new TrailRepository(this.databaseService.getContainer('trails'));
+    this.recommendationRepository = new RecommendationRepository(this.databaseService.getContainer('recommendations'));
   }
 
   async seedAll(options: {

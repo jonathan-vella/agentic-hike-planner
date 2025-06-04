@@ -47,9 +47,12 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
     databaseAccountOfferType: 'Standard'
     consistencyPolicy: {
       defaultConsistencyLevel: cosmosDbSettings[environment].consistencyLevel
-      maxStalenessPrefix: cosmosDbSettings[environment].consistencyLevel == 'BoundedStaleness' ? 10 : null
-      maxIntervalInSeconds: cosmosDbSettings[environment].consistencyLevel == 'BoundedStaleness' ? 5 : null
     }
+    enableAutomaticFailover: cosmosDbSettings[environment].enableAutomaticFailover
+    enableMultipleWriteLocations: cosmosDbSettings[environment].enableMultipleWriteLocations
+    enableAnalyticalStorage: false
+    networkAclBypass: 'AzureServices'
+    publicNetworkAccess: 'Enabled'
     locations: [
       {
         locationName: location
@@ -57,30 +60,6 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
         isZoneRedundant: environment == 'prod'
       }
     ]
-    capabilities: throughputMode == 'serverless' ? [
-      {
-        name: 'EnableServerless'
-      }
-    ] : []
-    enableAutomaticFailover: cosmosDbSettings[environment].enableAutomaticFailover
-    enableMultipleWriteLocations: cosmosDbSettings[environment].enableMultipleWriteLocations
-    enableAnalyticalStorage: false
-    analyticalStorageConfiguration: {
-      schemaType: 'WellDefined'
-    }
-    backup: {
-      type: 'Periodic'
-      periodicModeProperties: {
-        backupIntervalInMinutes: environment == 'prod' ? 240 : 1440
-        backupRetentionIntervalInHours: environment == 'prod' ? 720 : 168
-        backupStorageRedundancy: environment == 'prod' ? 'Geo' : 'Local'
-      }
-    }
-    networkAclBypass: 'AzureServices'
-    publicNetworkAccess: 'Enabled'
-    ipRules: []
-    isVirtualNetworkFilterEnabled: false
-    virtualNetworkRules: []
   }
   tags: {
     Environment: environment
@@ -108,74 +87,19 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15
   }
 }
 
-// Container definitions
+// Container definitions (excluding recommendations which is created separately)
 var containers = [
   {
     name: 'users'
     partitionKey: '/partitionKey'
-    indexingPolicy: {
-      includedPaths: [
-        { path: '/email/?' }
-        { path: '/fitnessLevel/?' }
-        { path: '/location/region/?' }
-        { path: '/createdAt/?' }
-      ]
-      excludedPaths: [
-        { path: '/*' }
-      ]
-    }
   }
   {
     name: 'trips'
     partitionKey: '/partitionKey'
-    indexingPolicy: {
-      includedPaths: [
-        { path: '/userId/?' }
-        { path: '/status/?' }
-        { path: '/dates/startDate/?' }
-        { path: '/dates/endDate/?' }
-        { path: '/location/region/?' }
-        { path: '/createdAt/?' }
-      ]
-      excludedPaths: [
-        { path: '/*' }
-      ]
-    }
   }
   {
     name: 'trails'
     partitionKey: '/partitionKey'
-    indexingPolicy: {
-      includedPaths: [
-        { path: '/characteristics/difficulty/?' }
-        { path: '/characteristics/distance/?' }
-        { path: '/characteristics/duration/?' }
-        { path: '/location/region/?' }
-        { path: '/location/country/?' }
-        { path: '/ratings/average/?' }
-        { path: '/isActive/?' }
-      ]
-      excludedPaths: [
-        { path: '/*' }
-      ]
-    }
-  }
-  {
-    name: 'recommendations'
-    partitionKey: '/partitionKey'
-    defaultTtl: 2592000  // 30 days
-    indexingPolicy: {
-      includedPaths: [
-        { path: '/userId/?' }
-        { path: '/tripId/?' }
-        { path: '/confidence/?' }
-        { path: '/createdAt/?' }
-        { path: '/expiresAt/?' }
-      ]
-      excludedPaths: [
-        { path: '/*' }
-      ]
-    }
   }
 ]
 
@@ -189,8 +113,6 @@ resource cosmosContainers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/co
         paths: [container.partitionKey]
         kind: 'Hash'
       }
-      indexingPolicy: container.indexingPolicy
-      defaultTtl: contains(container, 'defaultTtl') ? container.defaultTtl : null
     }
   } : {
     resource: {
@@ -199,14 +121,31 @@ resource cosmosContainers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/co
         paths: [container.partitionKey]
         kind: 'Hash'
       }
-      indexingPolicy: container.indexingPolicy
-      defaultTtl: contains(container, 'defaultTtl') ? container.defaultTtl : null
     }
     options: {
       throughput: minThroughput
     }
   }
 }]
+
+// Special container for recommendations with TTL
+resource recommendationsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
+  parent: database
+  name: 'recommendations'
+  properties: {
+    resource: {
+      id: 'recommendations'
+      partitionKey: {
+        paths: ['/partitionKey']
+        kind: 'Hash'
+      }
+      defaultTtl: 2592000  // 30 days
+    }
+    options: throughputMode == 'serverless' ? {} : {
+      throughput: minThroughput
+    }
+  }
+}
 
 // Outputs
 @description('The name of the Cosmos DB account')
@@ -216,9 +155,11 @@ output cosmosDbAccountName string = cosmosDbAccount.name
 output cosmosDbEndpoint string = cosmosDbAccount.properties.documentEndpoint
 
 @description('The primary key of the Cosmos DB account')
+@secure()
 output cosmosDbPrimaryKey string = cosmosDbAccount.listKeys().primaryMasterKey
 
 @description('The connection string of the Cosmos DB account')
+@secure()
 output cosmosDbConnectionString string = cosmosDbAccount.listConnectionStrings().connectionStrings[0].connectionString
 
 @description('The resource ID of the Cosmos DB account')

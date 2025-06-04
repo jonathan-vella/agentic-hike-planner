@@ -12,6 +12,7 @@
     "test:integration": "jest --testPathPattern='integration'",
     "test:azure": "jest --testPathPattern='azure' --runInBand",
     "test:performance": "npx ts-node ../tests/performance/cosmos-db-benchmark.ts",
+    "seed:azure": "npx ts-node seed-azure-data.ts",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
   },

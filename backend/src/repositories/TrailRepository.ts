@@ -75,19 +75,19 @@ export class TrailRepository extends BaseRepository<Trail> {
     // Build sort clause
     let orderBy = 'ORDER BY ';
     switch (sortBy) {
-      case 'distance':
-        orderBy += `c.characteristics.distance ${sortOrder.toUpperCase()}`;
-        break;
-      case 'difficulty':
-        orderBy += `c.characteristics.difficulty ${sortOrder.toUpperCase()}`;
-        break;
-      case 'popularity':
-        orderBy += `c.ratings.count ${sortOrder.toUpperCase()}`;
-        break;
-      case 'rating':
-      default:
-        orderBy += `c.ratings.average ${sortOrder.toUpperCase()}`;
-        break;
+    case 'distance':
+      orderBy += `c.characteristics.distance ${sortOrder.toUpperCase()}`;
+      break;
+    case 'difficulty':
+      orderBy += `c.characteristics.difficulty ${sortOrder.toUpperCase()}`;
+      break;
+    case 'popularity':
+      orderBy += `c.ratings.count ${sortOrder.toUpperCase()}`;
+      break;
+    case 'rating':
+    default:
+      orderBy += `c.ratings.average ${sortOrder.toUpperCase()}`;
+      break;
     }
 
     // Count query for total

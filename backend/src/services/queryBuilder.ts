@@ -117,21 +117,21 @@ export class TrailQueryBuilder {
 
       features.forEach((feature, index) => {
         switch (feature.toLowerCase()) {
-          case 'scenic views':
-          case 'scenicviews':
-            featureConditions.push('c.features.scenicViews = true');
-            break;
-          case 'water features':
-          case 'waterfeatures':
-            featureConditions.push('c.features.waterFeatures = true');
-            break;
-          case 'wildlife':
-            featureConditions.push('ARRAY_LENGTH(c.features.wildlife) > 0');
-            break;
-          default:
-            // Generic feature search in wildlife array
-            featureConditions.push(`ARRAY_CONTAINS(c.features.wildlife, @feature${index})`);
-            this.parameters.push({ name: `@feature${index}`, value: feature });
+        case 'scenic views':
+        case 'scenicviews':
+          featureConditions.push('c.features.scenicViews = true');
+          break;
+        case 'water features':
+        case 'waterfeatures':
+          featureConditions.push('c.features.waterFeatures = true');
+          break;
+        case 'wildlife':
+          featureConditions.push('ARRAY_LENGTH(c.features.wildlife) > 0');
+          break;
+        default:
+          // Generic feature search in wildlife array
+          featureConditions.push(`ARRAY_CONTAINS(c.features.wildlife, @feature${index})`);
+          this.parameters.push({ name: `@feature${index}`, value: feature });
         }
       });
 
@@ -149,19 +149,19 @@ export class TrailQueryBuilder {
 
       amenities.forEach(amenity => {
         switch (amenity.toLowerCase()) {
-          case 'parking':
-            amenityConditions.push('c.amenities.parking = true');
-            break;
-          case 'restrooms':
-            amenityConditions.push('c.amenities.restrooms = true');
-            break;
-          case 'camping':
-            amenityConditions.push('c.amenities.camping = true');
-            break;
-          case 'drinking water':
-          case 'drinkingwater':
-            amenityConditions.push('c.amenities.drinkingWater = true');
-            break;
+        case 'parking':
+          amenityConditions.push('c.amenities.parking = true');
+          break;
+        case 'restrooms':
+          amenityConditions.push('c.amenities.restrooms = true');
+          break;
+        case 'camping':
+          amenityConditions.push('c.amenities.camping = true');
+          break;
+        case 'drinking water':
+        case 'drinkingwater':
+          amenityConditions.push('c.amenities.drinkingWater = true');
+          break;
         }
       });
 
@@ -201,15 +201,15 @@ export class TrailQueryBuilder {
     const orderDirection = order.toUpperCase();
     
     switch (field) {
-      case 'rating':
-        this.orderByClause = `ORDER BY c.ratings.average ${orderDirection}`;
-        break;
-      case 'distance':
-        this.orderByClause = `ORDER BY c.characteristics.distance ${orderDirection}`;
-        break;
-      case 'difficulty':
-        // Custom sorting for difficulty levels
-        this.orderByClause = `ORDER BY (
+    case 'rating':
+      this.orderByClause = `ORDER BY c.ratings.average ${orderDirection}`;
+      break;
+    case 'distance':
+      this.orderByClause = `ORDER BY c.characteristics.distance ${orderDirection}`;
+      break;
+    case 'difficulty':
+      // Custom sorting for difficulty levels
+      this.orderByClause = `ORDER BY (
           CASE c.characteristics.difficulty
             WHEN 'beginner' THEN 1
             WHEN 'intermediate' THEN 2
@@ -218,21 +218,21 @@ export class TrailQueryBuilder {
             ELSE 5
           END
         ) ${orderDirection}`;
-        break;
-      case 'popularity':
-        this.orderByClause = `ORDER BY c.ratings.count ${orderDirection}`;
-        break;
-      case 'elevation':
-        this.orderByClause = `ORDER BY c.characteristics.elevationGain ${orderDirection}`;
-        break;
-      case 'name':
-        this.orderByClause = `ORDER BY c.name ${orderDirection}`;
-        break;
-      case 'created':
-        this.orderByClause = `ORDER BY c.createdAt ${orderDirection}`;
-        break;
-      default:
-        this.orderByClause = `ORDER BY c.ratings.average ${orderDirection}`;
+      break;
+    case 'popularity':
+      this.orderByClause = `ORDER BY c.ratings.count ${orderDirection}`;
+      break;
+    case 'elevation':
+      this.orderByClause = `ORDER BY c.characteristics.elevationGain ${orderDirection}`;
+      break;
+    case 'name':
+      this.orderByClause = `ORDER BY c.name ${orderDirection}`;
+      break;
+    case 'created':
+      this.orderByClause = `ORDER BY c.createdAt ${orderDirection}`;
+      break;
+    default:
+      this.orderByClause = `ORDER BY c.ratings.average ${orderDirection}`;
     }
     return this;
   }
@@ -337,7 +337,7 @@ export class TrailQueryBuilder {
     parameterCount: number;
     orderBy: string;
     pagination: string;
-  } {
+    } {
     return {
       whereConditions: this.whereConditions,
       parameterCount: this.parameters.length,

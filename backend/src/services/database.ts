@@ -2,25 +2,35 @@ import { CosmosClient, Database, Container, ContainerDefinition } from '@azure/c
 import { config } from '../config';
 
 export class DatabaseService {
-  private client: CosmosClient;
+  private client: CosmosClient | null = null;
   private database: Database | null = null;
   private containers: Map<string, Container> = new Map();
+  private isTestMode: boolean = false;
 
-  constructor() {
-    if (!config.azure.cosmosDb.endpoint || !config.azure.cosmosDb.key) {
-      throw new Error('Azure Cosmos DB configuration is missing');
+  constructor(testMode: boolean = false) {
+    this.isTestMode = testMode;
+    
+    if (!testMode) {
+      if (!config.azure.cosmosDb.endpoint || !config.azure.cosmosDb.key) {
+        throw new Error('Azure Cosmos DB configuration is missing');
+      }
+
+      this.client = new CosmosClient({
+        endpoint: config.azure.cosmosDb.endpoint,
+        key: config.azure.cosmosDb.key,
+      });
     }
-
-    this.client = new CosmosClient({
-      endpoint: config.azure.cosmosDb.endpoint,
-      key: config.azure.cosmosDb.key,
-    });
   }
 
   async initialize(): Promise<void> {
+    if (this.isTestMode) {
+      console.log('Database service running in test mode - skipping actual initialization');
+      return;
+    }
+
     try {
       // Create database
-      const { database } = await this.client.databases.createIfNotExists({
+      const { database } = await this.client!.databases.createIfNotExists({
         id: 'HikePlannerDB',
       });
       this.database = database;
@@ -115,6 +125,11 @@ export class DatabaseService {
   }
 
   getContainer(containerName: string): Container {
+    if (this.isTestMode) {
+      // Return a mock container for testing
+      return {} as Container;
+    }
+    
     const container = this.containers.get(containerName);
     if (!container) {
       throw new Error(`Container '${containerName}' not found. Make sure database is initialized.`);
@@ -150,5 +165,17 @@ export class DatabaseService {
   }
 }
 
-// Singleton instance
-export const databaseService = new DatabaseService();
+// Singleton instance - only create if we have credentials
+let databaseService: DatabaseService;
+try {
+  databaseService = new DatabaseService();
+} catch (error) {
+  // If no credentials, create a test instance
+  console.warn('No database credentials found, using test mode');
+  databaseService = new DatabaseService(true);
+}
+
+// Test instance for testing without credentials
+export const testDatabaseService = new DatabaseService(true);
+
+export { databaseService };

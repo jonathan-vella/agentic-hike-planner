@@ -1,5 +1,5 @@
-import { DatabaseService } from '../../../backend/src/services/database';
-import { dataSeeder } from '../../../backend/src/services';
+import { DatabaseService } from '../../backend/src/services/database';
+import { dataSeeder } from '../../backend/src/services';
 import { CosmosClient } from '@azure/cosmos';
 
 describe('Azure Cosmos DB Integration Tests', () => {

@@ -1,5 +1,5 @@
 import { CosmosClient } from '@azure/cosmos';
-import { dataSeeder } from '../../../backend/src/services';
+import { dataSeeder } from '../../backend/src/services';
 
 export interface TestDataConfig {
   users: number;

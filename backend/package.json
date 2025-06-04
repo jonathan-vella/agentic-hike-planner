@@ -7,7 +7,13 @@
     "dev": "npx ts-node src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "echo \"Tests will be added in future iterations\" && exit 0"
+    "test": "jest",
+    "test:unit": "jest --testPathPattern='unit'",
+    "test:integration": "jest --testPathPattern='integration'",
+    "test:azure": "jest --testPathPattern='azure' --runInBand",
+    "test:performance": "npx ts-node ../tests/performance/cosmos-db-benchmark.ts",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix"
   },
   "keywords": [
     "hiking",

@@ -1,1 +1,0 @@
-export { TrailsPage } from './TrailsPage';

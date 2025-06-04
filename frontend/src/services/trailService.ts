@@ -4,11 +4,11 @@ import type { Trail, TrailFilters } from '../types';
 export const trailService = {
   async searchTrails(filters: TrailFilters): Promise<Trail[]> {
     try {
-      const { data } = await apiClient.get('/trails', { params: filters });
-      return data.trails || [];
+      const { data } = await apiClient.get('/trails/search', { params: filters });
+      return data.trails || data.data || data;
     } catch (error) {
       console.error('Failed to search trails:', error);
-      // Return mock data for now
+      // Return mock data as fallback
       return [
         {
           id: '1',
@@ -80,10 +80,20 @@ export const trailService = {
   async getTrailById(id: string): Promise<Trail | null> {
     try {
       const { data } = await apiClient.get(`/trails/${id}`);
-      return data.trail;
+      return data.trail || data.data || data;
     } catch (error) {
       console.error('Failed to fetch trail:', error);
       return null;
+    }
+  },
+
+  async getRecommendations(): Promise<Trail[]> {
+    try {
+      const { data } = await apiClient.get('/trails/recommendations');
+      return data.trails || data.data || data;
+    } catch (error) {
+      console.error('Failed to fetch trail recommendations:', error);
+      return [];
     }
   },
 };

@@ -5,10 +5,10 @@ export const tripService = {
   async getUserTrips(): Promise<TripPlan[]> {
     try {
       const { data } = await apiClient.get('/trips');
-      return data.trips || [];
+      return data.trips || data.data || data;
     } catch (error) {
       console.error('Failed to fetch user trips:', error);
-      // Return mock data for now
+      // Return mock data as fallback
       return [
         {
           id: '1',
@@ -41,10 +41,10 @@ export const tripService = {
   async createTrip(trip: CreateTripRequest): Promise<TripPlan> {
     try {
       const { data } = await apiClient.post('/trips', trip);
-      return data.trip;
+      return data.trip || data.data || data;
     } catch (error) {
       console.error('Failed to create trip:', error);
-      // Return mock response for now
+      // Return mock response as fallback
       return {
         id: Date.now().toString(),
         title: trip.title,
@@ -63,7 +63,7 @@ export const tripService = {
   async updateTrip(id: string, updates: Partial<TripPlan>): Promise<TripPlan> {
     try {
       const { data } = await apiClient.put(`/trips/${id}`, updates);
-      return data.trip;
+      return data.trip || data.data || data;
     } catch (error) {
       console.error('Failed to update trip:', error);
       throw error;
@@ -76,6 +76,16 @@ export const tripService = {
     } catch (error) {
       console.error('Failed to delete trip:', error);
       throw error;
+    }
+  },
+
+  async getTripById(id: string): Promise<TripPlan | null> {
+    try {
+      const { data } = await apiClient.get(`/trips/${id}`);
+      return data.trip || data.data || data;
+    } catch (error) {
+      console.error('Failed to fetch trip:', error);
+      return null;
     }
   },
 };

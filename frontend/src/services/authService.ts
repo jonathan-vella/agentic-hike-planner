@@ -8,10 +8,10 @@ export const authService = {
       if (data.token) {
         localStorage.setItem('auth-token', data.token);
       }
-      return data.user;
+      return data.user || data.data || data;
     } catch (error) {
       console.error('Login failed:', error);
-      // Return mock user for now
+      // Return mock user as fallback
       const mockUser: UserProfile = {
         id: 'user123',
         email: credentials.email,
@@ -40,8 +40,8 @@ export const authService = {
 
   async getCurrentUser(): Promise<UserProfile | null> {
     try {
-      const { data } = await apiClient.get('/auth/me');
-      return data.user;
+      const { data } = await apiClient.get('/user/profile');
+      return data.user || data.data || data;
     } catch (error) {
       console.error('Failed to get current user:', error);
       return null;
@@ -50,11 +50,25 @@ export const authService = {
 
   async updateProfile(profile: Partial<UserProfile>): Promise<UserProfile> {
     try {
-      const { data } = await apiClient.put('/auth/profile', profile);
-      return data.user;
+      const { data } = await apiClient.put('/user/profile', profile);
+      return data.user || data.data || data;
     } catch (error) {
       console.error('Failed to update profile:', error);
       throw error;
+    }
+  },
+
+  async refreshToken(): Promise<string | null> {
+    try {
+      const { data } = await apiClient.post('/auth/refresh');
+      if (data.token) {
+        localStorage.setItem('auth-token', data.token);
+        return data.token;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to refresh token:', error);
+      return null;
     }
   },
 };

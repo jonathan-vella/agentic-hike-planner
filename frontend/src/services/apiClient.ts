@@ -17,15 +17,37 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor for error handling
+// Response interceptor for error handling and token refresh
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear auth token and redirect to login
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Try to refresh the token
+        const refreshResponse = await axios.post('/api/auth/refresh', {}, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('auth-token')}`,
+          },
+        });
+
+        if (refreshResponse.data.token) {
+          localStorage.setItem('auth-token', refreshResponse.data.token);
+          originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.token}`;
+          return apiClient(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+      }
+
+      // If refresh fails, clear token and redirect to login
       localStorage.removeItem('auth-token');
       window.location.href = '/';
     }
+    
     return Promise.reject(error);
   }
 );

@@ -19,6 +19,7 @@ variable "app_name" {
   default     = "hike-planner"
 }
 
+# Phase 1: Cosmos DB configuration - Intentionally inefficient for demo
 variable "enable_cosmos_db_free_tier" {
   description = "Enable free tier for Cosmos DB (only one per subscription)"
   type        = bool
@@ -26,9 +27,9 @@ variable "enable_cosmos_db_free_tier" {
 }
 
 variable "cosmos_db_throughput_mode" {
-  description = "Cosmos DB throughput mode (provisioned or serverless)"
+  description = "Cosmos DB throughput mode - Phase 1 uses intentionally inefficient provisioned mode for demo"
   type        = string
-  default     = "serverless"
+  default     = "provisioned"
   validation {
     condition     = contains(["provisioned", "serverless"], var.cosmos_db_throughput_mode)
     error_message = "Throughput mode must be either 'provisioned' or 'serverless'."
@@ -36,39 +37,15 @@ variable "cosmos_db_throughput_mode" {
 }
 
 variable "cosmos_db_min_throughput" {
-  description = "Minimum throughput for provisioned mode"
+  description = "Minimum throughput for provisioned mode - Intentionally high (1,000 RU/s) for demo as per demo.md"
   type        = number
-  default     = 400
+  default     = 1000
 }
 
 variable "cosmos_db_max_throughput" {
-  description = "Maximum throughput for autoscale"
+  description = "Maximum throughput for autoscale - Intentionally high for demo"
   type        = number
   default     = 4000
-}
-
-variable "enable_multi_region" {
-  description = "Enable multi-region deployment for production"
-  type        = bool
-  default     = false
-}
-
-variable "backup_retention_days" {
-  description = "Backup retention period in days"
-  type        = number
-  default     = 7
-}
-
-variable "log_retention_days" {
-  description = "Log Analytics retention period in days"
-  type        = number
-  default     = 30
-}
-
-variable "daily_log_quota_gb" {
-  description = "Daily log ingestion quota in GB"
-  type        = number
-  default     = 1
 }
 
 variable "tags" {
@@ -77,5 +54,7 @@ variable "tags" {
   default = {
     Application = "HikePlanner"
     CostCenter  = "Demo"
+    Project     = "Agentic Hike Planner"
+    Phase       = "1"
   }
 }

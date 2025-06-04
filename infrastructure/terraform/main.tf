@@ -44,6 +44,8 @@ locals {
   resource_suffix = random_string.suffix.result
   common_tags = merge(var.tags, {
     Environment = var.environment
+    Application = "HikePlanner"
+    CostCenter  = "Demo"
   })
   
   # Environment-specific settings
@@ -56,8 +58,6 @@ locals {
       backup_retention_hours         = 168
       backup_storage_redundancy      = "Local"
       is_zone_redundant             = false
-      sku_name                      = "B1"
-      always_on                     = false
     }
     staging = {
       consistency_level              = "Session"
@@ -67,8 +67,6 @@ locals {
       backup_retention_hours         = 168
       backup_storage_redundancy      = "Local"
       is_zone_redundant             = false
-      sku_name                      = "B1"
-      always_on                     = false
     }
     prod = {
       consistency_level              = "BoundedStaleness"
@@ -78,13 +76,11 @@ locals {
       backup_retention_hours         = 720
       backup_storage_redundancy      = "Geo"
       is_zone_redundant             = true
-      sku_name                      = "B2"
-      always_on                     = true
     }
   }
 }
 
-# Cosmos DB Account
+# Cosmos DB Account - Phase 1: Intentionally inefficient configuration for demo
 resource "azurerm_cosmosdb_account" "main" {
   name                = "${var.app_name}-cosmos-${var.environment}-${local.resource_suffix}"
   location            = var.location
@@ -92,12 +88,17 @@ resource "azurerm_cosmosdb_account" "main" {
   offer_type          = "Standard"
   kind                = "GlobalDocumentDB"
 
+  # Intentionally inefficient: Always use provisioned throughput for demo
   enable_free_tier         = var.enable_cosmos_db_free_tier
   enable_automatic_failover = local.env_settings[var.environment].enable_automatic_failover
   enable_multiple_write_locations = local.env_settings[var.environment].enable_multiple_write_locations
 
-  capabilities {
-    name = var.cosmos_db_throughput_mode == "serverless" ? "EnableServerless" : null
+  # Cosmos DB does not support capabilities for provisioned mode
+  dynamic "capabilities" {
+    for_each = var.cosmos_db_throughput_mode == "serverless" ? [1] : []
+    content {
+      name = "EnableServerless"
+    }
   }
 
   consistency_policy {
@@ -122,25 +123,14 @@ resource "azurerm_cosmosdb_account" "main" {
   tags = local.common_tags
 }
 
-# Cosmos DB SQL Database
+# Cosmos DB SQL Database - Intentionally inefficient: Fixed high throughput
 resource "azurerm_cosmosdb_sql_database" "main" {
   name                = "HikePlannerDB"
   resource_group_name = data.azurerm_resource_group.main.name
   account_name        = azurerm_cosmosdb_account.main.name
 
-  dynamic "autoscale_settings" {
-    for_each = var.cosmos_db_throughput_mode == "provisioned" ? [1] : []
-    content {
-      max_throughput = var.cosmos_db_max_throughput
-    }
-  }
-
-  dynamic "throughput" {
-    for_each = var.cosmos_db_throughput_mode == "provisioned" ? [] : [1]
-    content {
-      throughput = var.cosmos_db_min_throughput
-    }
-  }
+  # Intentionally inefficient: Use fixed high throughput instead of autoscale
+  throughput = var.cosmos_db_throughput_mode == "provisioned" ? var.cosmos_db_min_throughput : null
 }
 
 # Container definitions
@@ -199,17 +189,19 @@ locals {
   ]
 }
 
-# Cosmos DB SQL Containers
-resource "azurerm_cosmosdb_sql_container" "main" {
+# Cosmos DB Containers - Intentionally inefficient: Fixed throughput per container
+resource "azurerm_cosmosdb_sql_container" "containers" {
   for_each = { for container in local.containers : container.name => container }
 
-  name                  = each.value.name
-  resource_group_name   = data.azurerm_resource_group.main.name
-  account_name          = azurerm_cosmosdb_account.main.name
-  database_name         = azurerm_cosmosdb_sql_database.main.name
-  partition_key_path    = each.value.partition_key
-  partition_key_version = 1
-  default_ttl           = each.value.default_ttl
+  name                = each.value.name
+  resource_group_name = data.azurerm_resource_group.main.name
+  account_name        = azurerm_cosmosdb_account.main.name
+  database_name       = azurerm_cosmosdb_sql_database.main.name
+  partition_key_path  = each.value.partition_key
+  default_ttl         = each.value.default_ttl
+
+  # Intentionally inefficient: Fixed throughput for each container
+  throughput = var.cosmos_db_throughput_mode == "provisioned" ? var.cosmos_db_min_throughput : null
 
   indexing_policy {
     indexing_mode = "consistent"
@@ -225,191 +217,38 @@ resource "azurerm_cosmosdb_sql_container" "main" {
       path = "/*"
     }
   }
-
-  dynamic "autoscale_settings" {
-    for_each = var.cosmos_db_throughput_mode == "provisioned" ? [1] : []
-    content {
-      max_throughput = var.cosmos_db_max_throughput / 4  # Split throughput across containers
-    }
-  }
-
-  dynamic "throughput" {
-    for_each = var.cosmos_db_throughput_mode == "provisioned" ? [] : [1]
-    content {
-      throughput = var.cosmos_db_min_throughput
-    }
-  }
 }
 
-# Log Analytics Workspace
-resource "azurerm_log_analytics_workspace" "main" {
-  name                = "${var.app_name}-logs-${var.environment}"
-  location            = var.location
-  resource_group_name = data.azurerm_resource_group.main.name
-  sku                 = "PerGB2018"
-  retention_in_days   = var.log_retention_days
-  daily_quota_gb      = var.daily_log_quota_gb
-
-  tags = local.common_tags
-}
-
-# Application Insights
-resource "azurerm_application_insights" "main" {
-  name                = "${var.app_name}-insights-${var.environment}"
-  location            = var.location
-  resource_group_name = data.azurerm_resource_group.main.name
-  workspace_id        = azurerm_log_analytics_workspace.main.id
-  application_type    = "web"
-
-  tags = local.common_tags
-}
-
-# Key Vault
+# Key Vault for secrets storage
 resource "azurerm_key_vault" "main" {
-  name                = "${var.app_name}-kv-${var.environment}-${local.resource_suffix}"
-  location            = var.location
-  resource_group_name = data.azurerm_resource_group.main.name
-  tenant_id           = data.azurerm_client_config.current.tenant_id
-  sku_name            = "standard"
+  name                        = "${var.app_name}-kv-${var.environment}-${local.resource_suffix}"
+  location                    = var.location
+  resource_group_name         = data.azurerm_resource_group.main.name
+  enabled_for_disk_encryption = false
+  tenant_id                   = data.azurerm_client_config.current.tenant_id
+  soft_delete_retention_days  = var.environment == "prod" ? 90 : 7
+  purge_protection_enabled    = var.environment == "prod"
+  enable_rbac_authorization   = true
 
-  enabled_for_deployment          = true
-  enabled_for_template_deployment = true
-  enable_rbac_authorization       = true
-  soft_delete_retention_days      = var.environment == "prod" ? 90 : 7
-  purge_protection_enabled        = var.environment == "prod"
-
-  public_network_access_enabled = true
-
-  network_acls {
-    default_action = "Allow"
-    bypass         = "AzureServices"
-  }
+  sku_name = "standard"
 
   tags = local.common_tags
 }
 
-# Storage Account
-resource "azurerm_storage_account" "main" {
-  name                     = "${replace(var.app_name, "-", "")}st${var.environment}${local.resource_suffix}"
-  resource_group_name      = data.azurerm_resource_group.main.name
-  location                 = var.location
-  account_tier             = "Standard"
-  account_replication_type = var.environment == "prod" ? "GRS" : "LRS"
-  account_kind             = "StorageV2"
-  access_tier              = "Hot"
-
-  min_tls_version                 = "TLS1_2"
-  https_traffic_only_enabled      = true
-  allow_nested_items_to_be_public = true
-  shared_access_key_enabled       = true
-  public_network_access_enabled   = true
-
-  blob_properties {
-    delete_retention_policy {
-      days = var.environment == "prod" ? 30 : 7
-    }
-    container_delete_retention_policy {
-      days = var.environment == "prod" ? 30 : 7
-    }
-  }
-
-  tags = local.common_tags
-}
-
-# Storage Containers
-resource "azurerm_storage_container" "trail_images" {
-  name                  = "trail-images"
-  storage_account_name  = azurerm_storage_account.main.name
-  container_access_type = "blob"
-}
-
-resource "azurerm_storage_container" "trail_data" {
-  name                  = "trail-data"
-  storage_account_name  = azurerm_storage_account.main.name
-  container_access_type = "private"
-}
-
-# App Service Plan
-resource "azurerm_service_plan" "main" {
-  name                = "${var.app_name}-plan-${var.environment}"
-  location            = var.location
-  resource_group_name = data.azurerm_resource_group.main.name
-  os_type             = "Linux"
-  sku_name            = local.env_settings[var.environment].sku_name
-
-  tags = local.common_tags
-}
-
-# App Service
-resource "azurerm_linux_web_app" "main" {
-  name                = "${var.app_name}-api-${var.environment}"
-  location            = var.location
-  resource_group_name = data.azurerm_resource_group.main.name
-  service_plan_id     = azurerm_service_plan.main.id
-  https_only          = true
-
-  identity {
-    type = "SystemAssigned"
-  }
-
-  site_config {
-    always_on         = local.env_settings[var.environment].always_on
-    health_check_path = "/health"
-    
-    application_stack {
-      node_version = "18-lts"
-    }
-
-    app_settings = {
-      "NODE_ENV"                             = var.environment == "prod" ? "production" : "development"
-      "AZURE_COSMOS_DB_ENDPOINT"             = azurerm_cosmosdb_account.main.endpoint
-      "AZURE_COSMOS_DB_KEY"                  = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.cosmos_key.id})"
-      "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.main.connection_string
-      "AZURE_STORAGE_ACCOUNT_NAME"           = azurerm_storage_account.main.name
-      "WEBSITE_RUN_FROM_PACKAGE"             = "1"
-    }
-  }
-
-  tags = local.common_tags
-}
-
-# Key Vault Secrets
-resource "azurerm_key_vault_secret" "cosmos_key" {
+# Store Cosmos DB primary key in Key Vault
+resource "azurerm_key_vault_secret" "cosmos_primary_key" {
   name         = "cosmos-db-primary-key"
   value        = azurerm_cosmosdb_account.main.primary_key
   key_vault_id = azurerm_key_vault.main.id
 
-  depends_on = [azurerm_role_assignment.kv_secrets_user]
+  depends_on = [azurerm_key_vault.main]
 }
 
-resource "azurerm_key_vault_secret" "cosmos_connection_string" {
-  name         = "cosmos-db-connection-string"
-  value        = azurerm_cosmosdb_account.main.connection_strings[0]
+# Store Cosmos DB endpoint in Key Vault
+resource "azurerm_key_vault_secret" "cosmos_endpoint" {
+  name         = "cosmos-db-endpoint"
+  value        = azurerm_cosmosdb_account.main.endpoint
   key_vault_id = azurerm_key_vault.main.id
 
-  depends_on = [azurerm_role_assignment.kv_secrets_user]
-}
-
-# Role assignments
-resource "azurerm_role_assignment" "kv_secrets_user" {
-  scope                = azurerm_key_vault.main.id
-  role_definition_name = "Key Vault Secrets User"
-  principal_id         = azurerm_linux_web_app.main.identity[0].principal_id
-}
-
-resource "azurerm_role_assignment" "kv_admin" {
-  scope                = azurerm_key_vault.main.id
-  role_definition_name = "Key Vault Administrator"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
-
-# Static Web App
-resource "azurerm_static_site" "main" {
-  name                = "${var.app_name}-web-${var.environment}"
-  resource_group_name = data.azurerm_resource_group.main.name
-  location            = "Central US"  # Limited regions for Static Web Apps
-  sku_tier            = "Free"
-  sku_size            = "Free"
-
-  tags = local.common_tags
+  depends_on = [azurerm_key_vault.main]
 }

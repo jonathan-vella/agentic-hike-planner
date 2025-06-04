@@ -1,22 +1,47 @@
-# Azure Deployment Guide - Hike Planner Application
+# Phase 1 Deployment Guide: Azure Cosmos DB & IaC Foundation
 
-This document provides comprehensive instructions for deploying the Hike Planner application to Azure using the provided Infrastructure as Code (IaC) templates.
+This guide covers **Phase 1** of the Azure Cost Optimization Demo Infrastructure implementation. Phase 1 focuses specifically on Azure Cosmos DB integration and Infrastructure as Code foundation, as defined in [Issue #21](https://github.com/danielmeppiel/agentic-hike-planner/issues/21).
 
-## 📋 Overview
+## 🎯 Phase 1 Scope & Objectives
 
-The Hike Planner application uses Azure Cosmos DB as its primary database and can be deployed using either Bicep templates or Terraform configurations. This guide covers both deployment methods and provides troubleshooting information.
+**Phase 1** is intentionally limited in scope to establish the foundational database infrastructure with intentionally inefficient configuration for cost optimization demonstration.
 
-## 🏗️ Architecture
+### ✅ What's Included in Phase 1
+- **Azure Cosmos DB** with intentionally inefficient provisioned throughput (1,000 RU/s)
+- **Azure Key Vault** for secure secret storage  
+- **Infrastructure as Code** templates (Bicep & Terraform)
+- **Deployment automation** scripts
+- **Integration testing** framework for Azure resources
+- **Performance benchmarking** utilities
 
-The deployed infrastructure includes:
+### ❌ What's NOT in Phase 1
+- App Service Plans and App Services (Phase 2+)
+- Application Gateway (Phase 3+) 
+- Multiple Storage Accounts (Phase 4+)
+- Azure Functions Premium Plans (Phase 5+)
+- Static Web Apps (Phase 6+)
+- CDN and Redis Cache (Phase 7+)
 
-- **Azure Cosmos DB** (Serverless) - Primary database for application data
-- **Azure App Service** - Backend API hosting
-- **Azure Static Web Apps** - Frontend hosting
-- **Azure Key Vault** - Secure storage for secrets and connection strings
-- **Azure Storage Account** - File storage for trail images and data
-- **Azure Application Insights** - Application monitoring and analytics
-- **Azure Log Analytics** - Centralized logging
+> **Important**: This follows the phased approach defined in [demo.md](docs/demo.md) and [architecture-inefficient.md](docs/architecture-inefficient.md). Each subsequent phase will add specific inefficient infrastructure components.
+
+## 🏗️ Phase 1 Architecture
+
+The Phase 1 infrastructure includes:
+
+- **Azure Cosmos DB** (Provisioned 1,000 RU/s) - Intentionally inefficient configuration for cost optimization demo
+- **Azure Key Vault** - Secure storage for Cosmos DB secrets and connection strings
+
+### Intentionally Inefficient Configuration
+
+As per [demo.md](docs/demo.md), Phase 1 implements the following inefficiencies for cost optimization demonstration:
+
+| Resource | Configuration | Inefficiency | Monthly Cost Impact |
+|----------|---------------|--------------|-------------------|
+| **Cosmos DB** | 1,000 RU/s provisioned | Should use serverless for this workload | ~$60/month |
+| **Key Vault** | Standard tier | Basic operations for demo purposes | ~$5/month |
+| **Total** | | | **~$65/month** |
+
+**Optimization Potential**: 80% cost reduction by switching to Cosmos DB serverless mode (~$13/month)
 
 ## 🔧 Prerequisites
 

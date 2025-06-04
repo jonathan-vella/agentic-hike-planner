@@ -13,23 +13,17 @@ param appName string = 'hike-planner'
 @description('Enable free tier for Cosmos DB (only one per subscription)')
 param enableCosmosDbFreeTier bool = false
 
-@description('Cosmos DB throughput mode')
+@description('Cosmos DB throughput mode - Phase 1 focuses on intentionally inefficient provisioned mode for demo')
 @allowed(['provisioned', 'serverless'])
-param cosmosDbThroughputMode string = 'serverless'
+param cosmosDbThroughputMode string = 'provisioned'
 
 // Generate unique names based on environment
 var resourceNames = {
   cosmosDbAccount: '${appName}-cosmos-${environment}-${uniqueString(resourceGroup().id)}'
-  appServicePlan: '${appName}-plan-${environment}'
-  appService: '${appName}-api-${environment}'
-  staticWebApp: '${appName}-web-${environment}'
   keyVault: '${appName}-kv-${environment}-${uniqueString(resourceGroup().id)}'
-  storageAccount: toLower('${replace(appName, '-', '')}st${environment}${uniqueString(resourceGroup().id, take(appName, 5))}')
-  applicationInsights: '${appName}-insights-${environment}'
-  logAnalytics: '${appName}-logs-${environment}'
 }
 
-// Cosmos DB Module
+// Cosmos DB Module - Phase 1: Intentionally inefficient configuration for demo
 module cosmosDb 'modules/cosmos-db.bicep' = {
   name: 'cosmosDb-deployment'
   params: {
@@ -38,8 +32,9 @@ module cosmosDb 'modules/cosmos-db.bicep' = {
     environment: environment
     enableFreeTier: enableCosmosDbFreeTier
     throughputMode: cosmosDbThroughputMode
-    minThroughput: environment == 'prod' ? 400 : 400
-    maxThroughput: environment == 'prod' ? 4000 : 1000
+    // Intentionally inefficient: High fixed throughput for demo (as per demo.md)
+    minThroughput: 1000  // 1,000 RU/s consistently provisioned (inefficient)
+    maxThroughput: 4000
   }
 }
 
@@ -73,16 +68,6 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-// Store Cosmos DB connection string in Key Vault
-resource cosmosDbConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  parent: keyVault
-  name: 'cosmos-db-connection-string'
-  properties: {
-    value: cosmosDb.outputs.cosmosDbConnectionString
-    contentType: 'text/plain'
-  }
-}
-
 // Store Cosmos DB primary key in Key Vault
 resource cosmosDbPrimaryKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
@@ -93,244 +78,21 @@ resource cosmosDbPrimaryKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01'
   }
 }
 
-// Log Analytics Workspace
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  name: resourceNames.logAnalytics
-  location: location
+// Store Cosmos DB endpoint in Key Vault
+resource cosmosDbEndpointSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'cosmos-db-endpoint'
   properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-    retentionInDays: environment == 'prod' ? 90 : 30
-    features: {
-      enableLogAccessUsingOnlyResourcePermissions: true
-    }
-    workspaceCapping: {
-      dailyQuotaGb: environment == 'prod' ? 10 : 1
-    }
-  }
-  tags: {
-    Environment: environment
-    Application: 'HikePlanner'
-    CostCenter: 'Demo'
+    value: cosmosDb.outputs.cosmosDbEndpoint
+    contentType: 'text/plain'
   }
 }
 
-// Application Insights
-resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: resourceNames.applicationInsights
-  location: location
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    Flow_Type: 'Redfield'
-    Request_Source: 'rest'
-    WorkspaceResourceId: logAnalytics.id
-    IngestionMode: 'LogAnalytics'
-    publicNetworkAccessForIngestion: 'Enabled'
-    publicNetworkAccessForQuery: 'Enabled'
-  }
-  tags: {
-    Environment: environment
-    Application: 'HikePlanner'
-    CostCenter: 'Demo'
-  }
-}
-
-// Storage Account for trail images and data
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name: resourceNames.storageAccount
-  location: location
-  sku: {
-    name: environment == 'prod' ? 'Standard_GRS' : 'Standard_LRS'
-  }
-  kind: 'StorageV2'
-  properties: {
-    accessTier: 'Hot'
-    minimumTlsVersion: 'TLS1_2'
-    supportsHttpsTrafficOnly: true
-    allowBlobPublicAccess: true
-    allowSharedKeyAccess: true
-    publicNetworkAccess: 'Enabled'
-    encryption: {
-      services: {
-        blob: {
-          enabled: true
-        }
-        file: {
-          enabled: true
-        }
-      }
-      keySource: 'Microsoft.Storage'
-    }
-  }
-  tags: {
-    Environment: environment
-    Application: 'HikePlanner'
-    CostCenter: 'Demo'
-  }
-}
-
-// Blob containers
-resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
-  parent: storageAccount
-  name: 'default'
-  properties: {
-    deleteRetentionPolicy: {
-      enabled: true
-      days: environment == 'prod' ? 30 : 7
-    }
-    containerDeleteRetentionPolicy: {
-      enabled: true
-      days: environment == 'prod' ? 30 : 7
-    }
-  }
-}
-
-resource trailImagesContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
-  parent: blobServices
-  name: 'trail-images'
-  properties: {
-    publicAccess: 'Blob'
-    metadata: {}
-  }
-}
-
-resource trailDataContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
-  parent: blobServices
-  name: 'trail-data'
-  properties: {
-    publicAccess: 'None'
-    metadata: {}
-  }
-}
-
-// App Service Plan
-resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
-  name: resourceNames.appServicePlan
-  location: location
-  sku: {
-    name: environment == 'prod' ? 'B2' : 'B1'
-    capacity: 1
-  }
-  kind: 'linux'
-  properties: {
-    reserved: true
-    targetWorkerCount: 1
-    targetWorkerSizeId: 0
-  }
-  tags: {
-    Environment: environment
-    Application: 'HikePlanner'
-    CostCenter: 'Demo'
-  }
-}
-
-// App Service for API
-resource appService 'Microsoft.Web/sites@2023-01-01' = {
-  name: resourceNames.appService
-  location: location
-  kind: 'app,linux'
-  properties: {
-    serverFarmId: appServicePlan.id
-    httpsOnly: true
-    clientAffinityEnabled: false
-    publicNetworkAccess: 'Enabled'
-    siteConfig: {
-      linuxFxVersion: 'NODE|18-lts'
-      alwaysOn: environment == 'prod'
-      ftpsState: 'Disabled'
-      minTlsVersion: '1.2'
-      scmMinTlsVersion: '1.2'
-      http20Enabled: true
-      use32BitWorkerProcess: false
-      webSocketsEnabled: false
-      managedPipelineMode: 'Integrated'
-      remoteDebuggingEnabled: false
-      appSettings: [
-        {
-          name: 'NODE_ENV'
-          value: environment == 'prod' ? 'production' : 'development'
-        }
-        {
-          name: 'AZURE_COSMOS_DB_ENDPOINT'
-          value: cosmosDb.outputs.cosmosDbEndpoint
-        }
-        {
-          name: 'AZURE_COSMOS_DB_KEY'
-          value: '@Microsoft.KeyVault(SecretUri=${cosmosDbPrimaryKeySecret.properties.secretUri})'
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: applicationInsights.properties.ConnectionString
-        }
-        {
-          name: 'AZURE_STORAGE_ACCOUNT_NAME'
-          value: storageAccount.name
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-      ]
-    }
-  }
-  identity: {
-    type: 'SystemAssigned'
-  }
-  tags: {
-    Environment: environment
-    Application: 'HikePlanner'
-    CostCenter: 'Demo'
-  }
-}
-
-// Grant App Service access to Key Vault
-resource keyVaultAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: keyVault
-  name: guid(keyVault.id, appService.id, 'Key Vault Secrets User')
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6') // Key Vault Secrets User
-    principalId: appService.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Static Web App (Free tier)
-resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
-  name: resourceNames.staticWebApp
-  location: 'Central US' // Static Web Apps have limited regions
-  sku: {
-    name: 'Free'
-    tier: 'Free'
-  }
-  properties: {
-    repositoryUrl: 'https://github.com/danielmeppiel/agentic-hike-planner'
-    branch: 'main'
-    buildProperties: {
-      appLocation: '/frontend'
-      apiLocation: ''
-      outputLocation: 'dist'
-    }
-    stagingEnvironmentPolicy: 'Enabled'
-    allowConfigFileUpdates: true
-    enterpriseGradeCdnStatus: 'Disabled'
-  }
-  tags: {
-    Environment: environment
-    Application: 'HikePlanner'
-    CostCenter: 'Demo'
-  }
-}
-
-// Outputs for easy reference
+// Outputs for easy reference - Phase 1 scope
 output resourceNames object = resourceNames
 output cosmosDbEndpoint string = cosmosDb.outputs.cosmosDbEndpoint
 output cosmosDbAccountName string = cosmosDb.outputs.cosmosDbAccountName
 output cosmosDbDatabaseName string = cosmosDb.outputs.databaseName
+output cosmosDbPrimaryKey string = cosmosDb.outputs.cosmosDbPrimaryKey
+output cosmosDbConnectionString string = cosmosDb.outputs.cosmosDbConnectionString
 output keyVaultName string = keyVault.name
-output appServiceName string = appService.name
-output staticWebAppName string = staticWebApp.name
-output storageAccountName string = storageAccount.name
-output applicationInsightsInstrumentationKey string = applicationInsights.properties.InstrumentationKey
-output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString

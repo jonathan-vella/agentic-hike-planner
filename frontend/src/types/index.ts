@@ -118,7 +118,7 @@ export interface Message {
   id: string;
   content: string;
   sender: 'user' | 'ai';
-  timestamp: Date;
+  timestamp: Date | string; // Allow both Date and string to handle serialization
   type?: 'text' | 'action' | 'trail-info' | 'trip-plan';
 }
 

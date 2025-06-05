@@ -1,5 +1,7 @@
 import { UserIcon } from '@heroicons/react/24/outline';
 import type { Message } from '../types';
+// Import from the index file to ensure proper module resolution
+import { formatTimeString } from '../utils';
 
 interface ChatMessageProps {
   message: Message;
@@ -42,10 +44,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           <div className={`text-xs mt-2 ${
             isUser ? 'text-blue-100' : 'text-gray-500'
           }`}>
-            {message.timestamp.toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
+            {formatTimeString(message.timestamp)}
           </div>
         </div>
       </div>

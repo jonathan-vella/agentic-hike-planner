@@ -14,10 +14,17 @@ export const config = {
     cosmosDb: {
       endpoint: process.env.AZURE_COSMOS_DB_ENDPOINT || '',
       key: process.env.AZURE_COSMOS_DB_KEY || '',
+      databaseName: process.env.AZURE_COSMOS_DB_DATABASE_NAME || 'HikePlannerDB',
+      useAadAuth: process.env.USE_AAD_AUTH === 'true' || !process.env.AZURE_COSMOS_DB_KEY,
     },
     adB2c: {
       tenantId: process.env.AZURE_AD_B2C_TENANT_ID || '',
       clientId: process.env.AZURE_AD_B2C_CLIENT_ID || '',
+    },
+    identity: {
+      clientId: process.env.AZURE_CLIENT_ID || '',
+      clientSecret: process.env.AZURE_CLIENT_SECRET || '',
+      tenantId: process.env.AZURE_TENANT_ID || '',
     },
     aiFoundry: {
       endpoint: process.env.AZURE_AI_FOUNDRY_ENDPOINT || '',

@@ -26,12 +26,27 @@ export class DatabaseService {
       } else {
         // Use Azure AD authentication with DefaultAzureCredential
         try {
-          const credential = new DefaultAzureCredential();
+          // Configure DefaultAzureCredential with options to support local development
+          const credential = new DefaultAzureCredential({
+            // These options help with local development authentication
+            managedIdentityClientId: process.env.AZURE_CLIENT_ID,
+            excludeAzureCliCredential: false,
+            excludeVisualStudioCodeCredential: false,
+            excludeEnvironmentCredential: false,
+            excludeManagedIdentityCredential: false,
+            // These are less useful for local development
+            excludeInteractiveBrowserCredential: true,
+            excludeSharedTokenCacheCredential: true,
+          });
+          
           this.client = new CosmosClient({
             endpoint: config.azure.cosmosDb.endpoint,
             aadCredentials: credential,
           });
+          
+          console.log('Using Azure AD authentication for Cosmos DB');
         } catch (error) {
+          console.error('Azure AD authentication error:', error);
           throw new Error('Azure Cosmos DB authentication failed. Ensure either access key is provided or Azure AD authentication is configured.');
         }
       }
@@ -46,8 +61,11 @@ export class DatabaseService {
 
     try {
       // Create database
+      const databaseName = config.azure.cosmosDb.databaseName;
+      console.log(`Initializing database: ${databaseName}`);
+      
       const { database } = await this.client!.databases.createIfNotExists({
-        id: 'HikePlannerDB',
+        id: databaseName,
       });
       this.database = database;
 

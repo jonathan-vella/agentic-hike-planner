@@ -57,10 +57,11 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       checkAuth: async () => {
+        // First check if we have a token in local storage
         const token = localStorage.getItem('auth-token');
         
-        // In development, auto-login with mock user if no token
-        if (!token && import.meta.env.DEV) {
+        // Auto-mock in development environment if enabled
+        if (!token && import.meta.env.DEV && import.meta.env.VITE_AUTO_MOCK_AUTH === 'true') {
           const mockUser: UserProfile = {
             id: 'mock-user-id',
             email: 'user@example.com',
@@ -77,16 +78,20 @@ export const useAuthStore = create<AuthStore>()(
           return;
         }
         
+        // If no token, set as not authenticated
         if (!token) {
           set({ user: null, isAuthenticated: false });
           return;
         }
 
         try {
+          // Only try to get current user if we have a token
           const user = await authService.getCurrentUser();
           if (user) {
             set({ user, isAuthenticated: true });
           } else {
+            // No valid user found despite having a token
+            localStorage.removeItem('auth-token'); // Clear invalid token
             set({ user: null, isAuthenticated: false });
           }
         } catch (error) {

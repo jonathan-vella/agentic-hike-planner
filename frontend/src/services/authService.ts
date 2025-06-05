@@ -39,8 +39,17 @@ export const authService = {
   },
 
   async getCurrentUser(): Promise<UserProfile | null> {
+    // Check if token exists before making the API call
+    const token = localStorage.getItem('auth-token');
+    if (!token) {
+      return null; // No need to make API call if no auth token exists
+    }
+    
     try {
-      const { data } = await apiClient.get('/user/profile');
+      const { data } = await apiClient.get('/user/profile', {
+        // Reduce timeout for this specific call to avoid long waits when the server is down
+        timeout: 5000
+      });
       return data.user || data.data || data;
     } catch (error) {
       console.error('Failed to get current user:', error);

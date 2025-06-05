@@ -20,7 +20,7 @@ export const useChatStore = create<ChatState>()(
       isAuthenticated: false,
       user: null,
 
-      addMessage: (message: Message) =>
+      addMessage: (message: Message) => 
         set((state) => ({
           messages: [...state.messages, message]
         })),

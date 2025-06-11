@@ -13,9 +13,6 @@
     },
     "cosmosDbThroughputMode": {
       "value": "provisioned"
-    },
-    "budgetAlertEmail": {
-      "value": "demo@example.com"
     }
   }
 }

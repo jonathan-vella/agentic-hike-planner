@@ -46,19 +46,16 @@ describe('Phase 2 Infrastructure Validation', () => {
     expect(fs.existsSync(prodParams)).toBe(true);
   });
 
-  test('should have budget alert email in parameter files', () => {
+  test('should not have budget alert email in parameter files (should use environment variable)', () => {
     const fs = require('fs');
     
     const devParams = JSON.parse(fs.readFileSync(path.join(bicepDir, 'parameters/dev.json'), 'utf8'));
     const stagingParams = JSON.parse(fs.readFileSync(path.join(bicepDir, 'parameters/staging.json'), 'utf8'));
     const prodParams = JSON.parse(fs.readFileSync(path.join(bicepDir, 'parameters/prod.json'), 'utf8'));
     
-    expect(devParams.parameters.budgetAlertEmail).toBeDefined();
-    expect(stagingParams.parameters.budgetAlertEmail).toBeDefined();
-    expect(prodParams.parameters.budgetAlertEmail).toBeDefined();
-    
-    expect(devParams.parameters.budgetAlertEmail.value).toBe('demo@example.com');
-    expect(stagingParams.parameters.budgetAlertEmail.value).toBe('demo@example.com');
-    expect(prodParams.parameters.budgetAlertEmail.value).toBe('demo@example.com');
+    // Email should NOT be in parameter files for security
+    expect(devParams.parameters.budgetAlertEmail).toBeUndefined();
+    expect(stagingParams.parameters.budgetAlertEmail).toBeUndefined();
+    expect(prodParams.parameters.budgetAlertEmail).toBeUndefined();
   });
 });

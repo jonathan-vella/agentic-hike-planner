@@ -57,6 +57,10 @@ Options:
     -d, --dry-run        Validate templates without deploying [default: false]
     -h, --help           Show this help message
 
+Environment Variables:
+    BUDGET_ALERT_EMAIL   Email address for budget alerts [optional]
+                        If not set, will use value from parameter file
+
 Examples:
     # Deploy to dev environment
     $0 --environment dev --resource-group rg-hike-planner-dev
@@ -237,6 +241,12 @@ deploy_bicep() {
     # Override parameters if specified
     if [[ "$ENABLE_FREE_TIER" == true ]]; then
         deploy_cmd="$deploy_cmd --parameters enableCosmosDbFreeTier=true"
+    fi
+    
+    # Override budget alert email if environment variable is set
+    if [[ -n "${BUDGET_ALERT_EMAIL:-}" ]]; then
+        deploy_cmd="$deploy_cmd --parameters budgetAlertEmail='$BUDGET_ALERT_EMAIL'"
+        log_info "Using budget alert email from environment variable"
     fi
     
     # Execute deployment

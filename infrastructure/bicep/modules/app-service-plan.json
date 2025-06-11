@@ -1,0 +1,93 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.36.1.42791",
+      "templateHash": "14572674233275358436"
+    }
+  },
+  "parameters": {
+    "appServicePlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the App Service Plan"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "The location for the App Service Plan"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "metadata": {
+        "description": "The environment (dev, staging, prod)"
+      }
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "S3",
+      "metadata": {
+        "description": "The SKU name - Intentionally over-provisioned Standard S3 for cost demo"
+      }
+    },
+    "skuCapacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "metadata": {
+        "description": "The SKU capacity"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('skuName')]",
+        "capacity": "[parameters('skuCapacity')]"
+      },
+      "kind": "app",
+      "properties": {
+        "reserved": false
+      },
+      "tags": {
+        "Environment": "[parameters('environment')]",
+        "Application": "HikePlanner",
+        "CostCenter": "Demo",
+        "CostOptimization": "OverProvisioned",
+        "OptimalSku": "B2",
+        "WastageReason": "Standard-S3-vs-Basic-B2"
+      }
+    }
+  ],
+  "outputs": {
+    "appServicePlanId": {
+      "type": "string",
+      "metadata": {
+        "description": "The resource ID of the App Service Plan"
+      },
+      "value": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the App Service Plan"
+      },
+      "value": "[parameters('appServicePlanName')]"
+    },
+    "appServicePlanSku": {
+      "type": "object",
+      "metadata": {
+        "description": "The SKU of the App Service Plan"
+      },
+      "value": "[reference(resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName')), '2023-01-01', 'full').sku]"
+    }
+  }
+}

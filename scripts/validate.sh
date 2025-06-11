@@ -262,8 +262,46 @@ validate_bicep() {
         fi
     fi
     
+    # Validate Phase 2 modules
+    local app_service_plan_module="$bicep_dir/modules/app-service-plan.bicep"
+    local app_service_module="$bicep_dir/modules/app-service.bicep"
+    local budget_alerts_module="$bicep_dir/modules/budget-alerts.bicep"
+    
+    if [[ -f "$app_service_plan_module" ]]; then
+        log_info "Validating app-service-plan.bicep module..."
+        
+        if az bicep build --file "$app_service_plan_module" --outfile "/tmp/app-service-plan.json" &> /dev/null; then
+            log_success "App Service Plan module validation passed"
+        else
+            log_error "App Service Plan module validation failed"
+            validation_failed=true
+        fi
+    fi
+    
+    if [[ -f "$app_service_module" ]]; then
+        log_info "Validating app-service.bicep module..."
+        
+        if az bicep build --file "$app_service_module" --outfile "/tmp/app-service.json" &> /dev/null; then
+            log_success "App Service module validation passed"
+        else
+            log_error "App Service module validation failed"
+            validation_failed=true
+        fi
+    fi
+    
+    if [[ -f "$budget_alerts_module" ]]; then
+        log_info "Validating budget-alerts.bicep module..."
+        
+        if az bicep build --file "$budget_alerts_module" --outfile "/tmp/budget-alerts.json" &> /dev/null; then
+            log_success "Budget Alerts module validation passed"
+        else
+            log_error "Budget Alerts module validation failed"
+            validation_failed=true
+        fi
+    fi
+    
     # Clean up temporary files
-    rm -f /tmp/main.json /tmp/cosmos-db.json
+    rm -f /tmp/main.json /tmp/cosmos-db.json /tmp/app-service-plan.json /tmp/app-service.json /tmp/budget-alerts.json
     
     if [[ "$validation_failed" == true ]]; then
         return 1
@@ -368,6 +406,9 @@ validate_structure() {
     local required_files=(
         "infrastructure/bicep/main.bicep"
         "infrastructure/bicep/modules/cosmos-db.bicep"
+        "infrastructure/bicep/modules/app-service-plan.bicep"
+        "infrastructure/bicep/modules/app-service.bicep"
+        "infrastructure/bicep/modules/budget-alerts.bicep"
         "infrastructure/bicep/parameters/dev.json"
         "infrastructure/bicep/parameters/staging.json"
         "infrastructure/bicep/parameters/prod.json"

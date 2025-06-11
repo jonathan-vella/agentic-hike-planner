@@ -1,0 +1,167 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.36.1.42791",
+      "templateHash": "9726562385290565352"
+    }
+  },
+  "parameters": {
+    "appServiceName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the App Service"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "The location for the App Service"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "metadata": {
+        "description": "The environment (dev, staging, prod)"
+      }
+    },
+    "appServicePlanId": {
+      "type": "string",
+      "metadata": {
+        "description": "The resource ID of the App Service Plan"
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "The Key Vault name for storing secrets"
+      }
+    },
+    "cosmosDbEndpoint": {
+      "type": "string",
+      "metadata": {
+        "description": "The Cosmos DB endpoint"
+      }
+    },
+    "cosmosDbDatabaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Cosmos DB database"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('appServiceName')]",
+      "location": "[parameters('location')]",
+      "kind": "app",
+      "properties": {
+        "serverFarmId": "[parameters('appServicePlanId')]",
+        "httpsOnly": true,
+        "redundancyMode": "None",
+        "publicNetworkAccess": "Enabled",
+        "siteConfig": {
+          "nodeVersion": "~18",
+          "alwaysOn": true,
+          "ftpsState": "FtpsOnly",
+          "minTlsVersion": "1.2",
+          "http20Enabled": true,
+          "appSettings": [
+            {
+              "name": "NODE_ENV",
+              "value": "[if(equals(parameters('environment'), 'prod'), 'production', 'development')]"
+            },
+            {
+              "name": "AZURE_COSMOS_DB_ENDPOINT",
+              "value": "[parameters('cosmosDbEndpoint')]"
+            },
+            {
+              "name": "AZURE_COSMOS_DB_DATABASE",
+              "value": "[parameters('cosmosDbDatabaseName')]"
+            },
+            {
+              "name": "AZURE_COSMOS_DB_KEY",
+              "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/cosmos-db-primary-key/)', parameters('keyVaultName'))]"
+            },
+            {
+              "name": "WEBSITE_NODE_DEFAULT_VERSION",
+              "value": "~18"
+            },
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true"
+            }
+          ]
+        },
+        "clientAffinityEnabled": false
+      },
+      "tags": {
+        "Environment": "[parameters('environment')]",
+        "Application": "HikePlanner",
+        "CostCenter": "Demo",
+        "CostOptimization": "Connected",
+        "ServiceTier": "Backend"
+      },
+      "identity": {
+        "type": "SystemAssigned"
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/accessPolicies",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/add', parameters('keyVaultName'))]",
+      "properties": {
+        "accessPolicies": [
+          {
+            "tenantId": "[subscription().tenantId]",
+            "objectId": "[reference(resourceId('Microsoft.Web/sites', parameters('appServiceName')), '2023-01-01', 'full').identity.principalId]",
+            "permissions": {
+              "secrets": [
+                "get",
+                "list"
+              ]
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('appServiceName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "appServiceName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the App Service"
+      },
+      "value": "[parameters('appServiceName')]"
+    },
+    "appServiceDefaultHostname": {
+      "type": "string",
+      "metadata": {
+        "description": "The default hostname of the App Service"
+      },
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('appServiceName')), '2023-01-01').defaultHostName]"
+    },
+    "appServicePrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "The principal ID of the App Service managed identity"
+      },
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('appServiceName')), '2023-01-01', 'full').identity.principalId]"
+    },
+    "appServiceId": {
+      "type": "string",
+      "metadata": {
+        "description": "The resource ID of the App Service"
+      },
+      "value": "[resourceId('Microsoft.Web/sites', parameters('appServiceName'))]"
+    }
+  }
+}

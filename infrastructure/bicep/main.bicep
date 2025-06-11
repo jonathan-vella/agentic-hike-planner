@@ -17,11 +17,17 @@ param enableCosmosDbFreeTier bool = false
 @allowed(['provisioned', 'serverless'])
 param cosmosDbThroughputMode string = 'provisioned'
 
+@description('Email address for budget alerts')
+param budgetAlertEmail string = 'demo@example.com'
+
 // Generate unique names based on environment (Key Vault names must be 3-24 chars)
 var uniqueSuffix = take(uniqueString(resourceGroup().id), 6)
 var resourceNames = {
   cosmosDbAccount: '${appName}-cosmos-${environment}-${uniqueSuffix}'
   keyVault: 'hkv-${environment}-${uniqueSuffix}'  // Shortened for 24-char limit
+  appServicePlan: '${appName}-plan-${environment}-${uniqueSuffix}'
+  appService: '${appName}-api-${environment}-${uniqueSuffix}'
+  budget: '${appName}-budget-${environment}'
 }
 
 // Cosmos DB Module - Phase 1: Intentionally inefficient configuration for demo
@@ -65,6 +71,8 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     Environment: environment
     Application: 'HikePlanner'
     CostCenter: 'Demo'
+    CostOptimization: 'Connected'
+    ServiceTier: 'Security'
   }
 }
 
@@ -88,7 +96,47 @@ resource cosmosDbEndpointSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' =
   }
 }
 
-// Outputs for easy reference - Phase 1 scope
+// Phase 2: App Service Plan Module - Intentionally over-provisioned for demo
+module appServicePlan 'modules/app-service-plan.bicep' = {
+  name: 'appServicePlan-deployment'
+  params: {
+    appServicePlanName: resourceNames.appServicePlan
+    location: location
+    environment: environment
+    skuName: 'S3'  // Intentionally over-provisioned (should be B2)
+    skuCapacity: 1
+  }
+}
+
+// Phase 2: App Service Module - Backend API
+module appService 'modules/app-service.bicep' = {
+  name: 'appService-deployment'
+  params: {
+    appServiceName: resourceNames.appService
+    location: location
+    environment: environment
+    appServicePlanId: appServicePlan.outputs.appServicePlanId
+    keyVaultName: keyVault.name
+    cosmosDbEndpoint: cosmosDb.outputs.cosmosDbEndpoint
+    cosmosDbDatabaseName: cosmosDb.outputs.databaseName
+  }
+  dependsOn: [
+    cosmosDbPrimaryKeySecret
+    cosmosDbEndpointSecret
+  ]
+}
+
+// Phase 2: Budget Alerts Module - Cost monitoring and protection
+module budgetAlerts 'modules/budget-alerts.bicep' = {
+  name: 'budgetAlerts-deployment'
+  params: {
+    budgetName: resourceNames.budget
+    environment: environment
+    alertEmail: budgetAlertEmail
+  }
+}
+
+// Outputs for easy reference - Phase 1 & 2 scope
 output resourceNames object = resourceNames
 output cosmosDbEndpoint string = cosmosDb.outputs.cosmosDbEndpoint
 output cosmosDbAccountName string = cosmosDb.outputs.cosmosDbAccountName
@@ -98,3 +146,14 @@ output cosmosDbPrimaryKey string = cosmosDb.outputs.cosmosDbPrimaryKey
 @secure()
 output cosmosDbConnectionString string = cosmosDb.outputs.cosmosDbConnectionString
 output keyVaultName string = keyVault.name
+
+// Phase 2: App Service outputs
+output appServicePlanName string = appServicePlan.outputs.appServicePlanName
+output appServicePlanSku object = appServicePlan.outputs.appServicePlanSku
+output appServiceName string = appService.outputs.appServiceName
+output appServiceUrl string = 'https://${appService.outputs.appServiceDefaultHostname}'
+output appServicePrincipalId string = appService.outputs.appServicePrincipalId
+
+// Phase 2: Budget and cost monitoring outputs
+output budgetName string = budgetAlerts.outputs.budgetName
+output budgetSummary object = budgetAlerts.outputs.budgetSummary

@@ -1,2 +1,11 @@
 node_modules
 .env.local
+
+# Build artifacts
+infrastructure/bicep/**/*.json
+!infrastructure/bicep/parameters/*.json
+
+# Temporary files
+/tmp
+*.tmp
+*.temp

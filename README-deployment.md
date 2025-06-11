@@ -1,21 +1,24 @@
-# Phase 1 Deployment Guide: Azure Cosmos DB & IaC Foundation
+# Phase 1-2 Deployment Guide: Azure Cosmos DB, App Service & Cost Monitoring
 
-This guide covers **Phase 1** of the Azure Cost Optimization Demo Infrastructure implementation. Phase 1 focuses specifically on Azure Cosmos DB integration and Infrastructure as Code foundation, as defined in [Issue #21](https://github.com/danielmeppiel/agentic-hike-planner/issues/21).
+This guide covers **Phase 1** and **Phase 2** of the Azure Cost Optimization Demo Infrastructure implementation. These phases establish the foundational database infrastructure and App Service platform with intentionally inefficient configuration for cost optimization demonstration, as defined in [Issue #21](https://github.com/danielmeppiel/agentic-hike-planner/issues/21) and [Issue #22](https://github.com/danielmeppiel/agentic-hike-planner/issues/22).
 
-## 🎯 Phase 1 Scope & Objectives
+## 🎯 Phase 1-2 Scope & Objectives
 
-**Phase 1** is intentionally limited in scope to establish the foundational database infrastructure with intentionally inefficient configuration for cost optimization demonstration.
+**Phase 1-2** establishes the foundational infrastructure with intentionally inefficient configuration for cost optimization demonstration.
 
-### ✅ What's Included in Phase 1
+### ✅ What's Included in Phase 1-2
 - **Azure Cosmos DB** with intentionally inefficient provisioned throughput (1,000 RU/s)
 - **Azure Key Vault** for secure secret storage  
+- **App Service Plan** (Standard S3 - over-provisioned for demo)
+- **App Service** (Node.js backend with Azure integrations)
+- **Budget Alerts** (Multi-tier cost monitoring: 50%, 80%, 100%)
 - **Infrastructure as Code** templates (Bicep & Terraform)
 - **Deployment automation** scripts
 - **Integration testing** framework for Azure resources
 - **Performance benchmarking** utilities
+- **Cost monitoring and protection** mechanisms
 
-### ❌ What's NOT in Phase 1
-- App Service Plans and App Services (Phase 2+)
+### ❌ What's NOT in Phase 1-2
 - Application Gateway (Phase 3+) 
 - Multiple Storage Accounts (Phase 4+)
 - Azure Functions Premium Plans (Phase 5+)
@@ -24,24 +27,28 @@ This guide covers **Phase 1** of the Azure Cost Optimization Demo Infrastructure
 
 > **Important**: This follows the phased approach defined in [demo.md](docs/demo.md) and [architecture-inefficient.md](docs/architecture-inefficient.md). Each subsequent phase will add specific inefficient infrastructure components.
 
-## 🏗️ Phase 1 Architecture
+## 🏗️ Phase 1-2 Architecture
 
-The Phase 1 infrastructure includes:
+The Phase 1-2 infrastructure includes:
 
 - **Azure Cosmos DB** (Provisioned 1,000 RU/s) - Intentionally inefficient configuration for cost optimization demo
 - **Azure Key Vault** - Secure storage for Cosmos DB secrets and connection strings
+- **App Service Plan** (Standard S3) - Intentionally over-provisioned for cost demo
+- **App Service** (Node.js backend) - Backend API with Cosmos DB and Key Vault integration
+- **Budget Alerts** - Multi-tier cost monitoring with email notifications
 
 ### Intentionally Inefficient Configuration
 
-As per [demo.md](docs/demo.md), Phase 1 implements the following inefficiencies for cost optimization demonstration:
+As per [demo.md](docs/demo.md), Phase 1-2 implements the following inefficiencies for cost optimization demonstration:
 
 | Resource | Configuration | Inefficiency | Monthly Cost Impact |
 |----------|---------------|--------------|-------------------|
 | **Cosmos DB** | 1,000 RU/s provisioned | Should use serverless for this workload | ~$60/month |
 | **Key Vault** | Standard tier | Basic operations for demo purposes | ~$5/month |
-| **Total** | | | **~$65/month** |
+| **App Service Plan** | Standard S3 tier | Should use Basic B2 for this workload | ~$150/month |
+| **Total** | | | **~$215/month** |
 
-**Optimization Potential**: 80% cost reduction by switching to Cosmos DB serverless mode (~$13/month)
+**Optimization Potential**: 67% cost reduction by switching to serverless Cosmos DB (~$25/month) and Basic B2 App Service Plan (~$30/month) = **~$85/month total**
 
 ## 🔧 Prerequisites
 
@@ -186,29 +193,67 @@ The deployment automatically configures the following for your App Service:
 {
   "NODE_ENV": "production",
   "AZURE_COSMOS_DB_ENDPOINT": "<cosmos-endpoint>",
+  "AZURE_COSMOS_DB_DATABASE": "<cosmos-database-name>", 
   "AZURE_COSMOS_DB_KEY": "@Microsoft.KeyVault(SecretUri=<keyvault-secret-uri>)",
-  "APPLICATIONINSIGHTS_CONNECTION_STRING": "<insights-connection-string>",
-  "AZURE_STORAGE_ACCOUNT_NAME": "<storage-account-name>"
+  "WEBSITE_NODE_DEFAULT_VERSION": "~18",
+  "SCM_DO_BUILD_DURING_DEPLOYMENT": "true"
+}
+```
+
+### Budget Alerts Configuration
+
+Phase 2 includes multi-tier budget monitoring:
+
+- **50% threshold**: Monitor alert - Email notification for cost awareness
+- **80% threshold**: Investigate alert - Time to review resource usage  
+- **100% threshold**: Emergency alert - Immediate action required
+
+Default budget amounts by environment:
+- **Development**: $25/month
+- **Staging**: $50/month 
+- **Production**: $100/month
+
+Configure the alert email in parameter files:
+```json
+{
+  "budgetAlertEmail": {
+    "value": "your-email@domain.com"
+  }
 }
 ```
 
 ## 📊 Cost Management
 
-### Environment Costs (Estimated Monthly)
+### Environment Costs (Estimated Monthly - Phase 1-2)
 
-| Environment | Cosmos DB | App Service | Storage | Monitoring | Total |
-|-------------|-----------|-------------|---------|------------|-------|
-| **Development** | $0 (Free Tier) | $13 (B1) | $5 | $5 | **~$25** |
-| **Staging** | $25 (Serverless) | $13 (B1) | $5 | $5 | **~$50** |
-| **Production** | $40 (Provisioned) | $55 (B2) | $15 | $10 | **~$120** |
+| Environment | Cosmos DB | App Service Plan | Key Vault | Budget Alerts | Total |
+|-------------|-----------|------------------|-----------|---------------|-------|
+| **Development** | $60 (1000 RU/s) | $150 (S3) | $5 | $0 | **~$215** |
+| **Staging** | $60 (1000 RU/s) | $150 (S3) | $5 | $0 | **~$215** |  
+| **Production** | $60 (1000 RU/s) | $150 (S3) | $5 | $0 | **~$215** |
+
+### Optimization Opportunities (For Demo)
+
+| Resource | Current | Optimal | Savings |
+|----------|---------|---------|---------|
+| **Cosmos DB** | 1000 RU/s Provisioned | Serverless | ~$35/month |
+| **App Service Plan** | Standard S3 | Basic B2 | ~$120/month |
+| **Total Potential Savings** | | | **~$155/month (72%)** |
+
+### Cost Protection Features
+
+1. **Budget Alerts**: Multi-tier monitoring (50%, 80%, 100% thresholds)
+2. **Email Notifications**: Automatic alerts when costs exceed thresholds  
+3. **Enhanced Tagging**: Resource cost attribution and optimization tracking
+4. **Emergency Procedures**: Documented cleanup processes for cost overruns
 
 ### Cost Optimization Tips
 
-1. **Use Free Tiers**: Enable Cosmos DB free tier for development
-2. **Serverless Mode**: Use serverless Cosmos DB for variable workloads
-3. **Autoscale**: Enable autoscale for App Service Plans in production
-4. **Storage Lifecycle**: Configure blob storage lifecycle policies
-5. **Monitoring**: Set up budget alerts and cost monitoring
+1. **Right-size App Service**: Standard S3 → Basic B2 for most workloads
+2. **Serverless Cosmos DB**: Switch from provisioned to serverless for variable workloads
+3. **Environment Scheduling**: Shut down non-prod environments outside business hours
+4. **Resource Monitoring**: Use budget alerts to catch cost spikes early
+5. **Tagging Strategy**: Implement consistent tagging for cost attribution
 
 ## 🧪 Testing the Deployment
 

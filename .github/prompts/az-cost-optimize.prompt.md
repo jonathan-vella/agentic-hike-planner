@@ -1,193 +1,263 @@
 # Azure Cost Optimization Workflow
 
 ## Overview
-This workflow analyzes Infrastructure-as-Code (IaC) files in the current workspace, maps Azure resources, creates visual diagrams, generates cost optimization recommendations, and creates a GitHub issue with findings.
+This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to generate cost optimization recommendations. It creates individual GitHub issues for each optimization opportunity plus one EPIC issue to coordinate implementation, enabling efficient tracking and execution of cost savings initiatives.
 
 ## Prerequisites
 - Azure MCP server configured and authenticated
 - GitHub MCP server configured and authenticated  
-- IaC files present in workspace (ARM templates, Bicep files, Terraform, etc.)
 - Target GitHub repository identified
+- Azure resources deployed (IaC files optional but helpful)
 
 ## Workflow Steps
 
-### Step 1: Analyze Local IaC Files
-**Action**: Analyze Infrastructure-as-Code files in the current workspace
-**Tools**: Local file system access (not MCP - files are in client workspace)
+### Step 1: Discover Azure Infrastructure
+**Action**: Dynamically discover and analyze Azure resources and configurations
+**Tools**: Azure CLI execution + Local file system access
 **Process**:
-1. Scan workspace for IaC files:
-   - ARM templates (*.json with $schema containing "deploymentTemplate")
-   - Bicep files (*.bicep)
-   - Terraform files (*.tf)
-   - Azure CLI scripts (*.sh, *.ps1 with az commands)
-2. Parse and extract Azure resource definitions
-3. Identify resource types, configurations, and dependencies
-4. Map resource relationships and architecture patterns
+1. **Resource Discovery**:
+   - Execute `az group list` to find all resource groups
+   - Execute `az resource list --query "[].{name:name, type:type, resourceGroup:resourceGroup, location:location}"` 
+   - For each resource type found, execute specific list commands:
+     - `az webapp list` - Web Apps and App Service Plans
+     - `az functionapp list` - Function Apps
+     - `az storage account list` - Storage Accounts
+     - `az cosmosdb list` - Cosmos DB Accounts
+     - `az vm list` - Virtual Machines
+     - `az sql server list` - SQL Servers and Databases
+     - `az redis list` - Redis Cache instances
+     - `az cdn profile list` - CDN Profiles
+     - `az keyvault list` - Key Vaults
+     - `az monitor app-insights component list` - Application Insights
 
-### Step 2: Validate Azure Resources & Gather Usage Data
-**Action**: Cross-reference IaC definitions with actual Azure resources and collect usage metrics
-**MCP Tools Required**:
-- **Azure CLI execution** (via terminal/run_in_terminal tool):
-  - `az group list` - List all resource groups
-  - `az resource list` - List all resources across subscriptions
-  - `az webapp list` - List web apps
-  - `az functionapp list` - List function apps
-  - `az storage account list` - List storage accounts
-  - `az cosmosdb list` - List Cosmos DB accounts
-  - `az vm list` - List virtual machines
-- **Azure Monitor MCP tools**:
-  - `azmcp monitor workspace list` - Find Log Analytics workspaces
-  - `azmcp monitor table type list` - Discover available monitoring tables
-  - `azmcp monitor table list` - List specific tables in workspace
-  - `azmcp monitor log query` - Execute KQL queries for usage analysis
+2. **IaC Analysis** (if available):
+   - Scan workspace for IaC files: ARM templates (*.json), Bicep files (*.bicep), Terraform files (*.tf)
+   - Parse resource definitions to understand intended configurations
+   - Compare IaC definitions with deployed resources to identify drift
 
+3. **Configuration Analysis**:
+   - Extract current SKUs, tiers, and settings for each resource
+   - Identify resource relationships and dependencies
+   - Map resource utilization patterns where available
+
+### Step 2: Collect Usage Metrics
+**Action**: Gather performance and utilization data from Azure Monitor
+**Tools**: Azure Monitor MCP tools + Azure CLI
 **Process**:
-1. **Resource Validation**:
-   - Execute Azure CLI commands to inventory actual Azure resources
-   - Match IaC resource names/patterns with deployed resources
-   - Identify discrepancies between IaC definitions and actual deployments
-   - Gather current resource configurations (SKUs, tiers, settings)
-2. **Usage Data Collection**:
-   - Find Log Analytics workspaces linked to the infrastructure
-   - Identify available monitoring tables (Perf, Usage, AzureMetrics, etc.)
-   - Execute KQL queries to analyze:
-     - CPU and memory utilization patterns
-     - Storage access patterns and costs
-     - Network traffic and bandwidth usage
-     - Database query performance and RU consumption
-     - Function execution frequency and duration
-     - Web app request patterns and response times
-3. Calculate baseline usage metrics for cost optimization analysis
+1. **Find Monitoring Sources**:
+   - Execute `az monitor log-analytics workspace list` to find Log Analytics workspaces
+   - Use Azure MCP: `azmcp monitor workspace list` and `azmcp monitor table list`
 
-### Step 3: Generate Infrastructure Diagram
-**Action**: Create Mermaid diagram representing the Azure infrastructure
-**Tools**: Local processing (generate Mermaid syntax)
+2. **Execute Usage Queries** (sample KQL queries):
+   ```kql
+   // CPU utilization for App Services
+   AppServiceAppLogs
+   | where TimeGenerated > ago(7d)
+   | summarize avg(CpuTime) by Resource, bin(TimeGenerated, 1h)
+   
+   // Cosmos DB RU consumption
+   AzureDiagnostics
+   | where ResourceProvider == "MICROSOFT.DOCUMENTDB"
+   | where TimeGenerated > ago(7d)
+   | summarize avg(RequestCharge) by Resource
+   
+   // Storage account access patterns
+   StorageBlobLogs
+   | where TimeGenerated > ago(7d)
+   | summarize RequestCount=count() by AccountName, bin(TimeGenerated, 1d)
+   ```
+
+3. **Calculate Baseline Metrics**:
+   - CPU/Memory utilization averages
+   - Database throughput patterns
+   - Storage access frequency
+   - Function execution rates
+
+### Step 3: Generate Cost Optimization Recommendations
+**Action**: Analyze resources and usage to identify optimization opportunities
+**Tools**: Local analysis using collected data
 **Process**:
-1. Create architecture diagram showing:
-   - Resource groups as containers
-   - Resources with their types and key properties
-   - Dependencies and relationships between resources
-   - Network connections and data flows
-2. Use Mermaid graph syntax with appropriate Azure icons/styling
-3. Include cost-relevant information (SKUs, tiers, instance counts)
+1. **Apply Optimization Patterns** based on resource types found:
+   
+   **Compute Optimizations**:
+   - App Service Plans: Right-size based on CPU/memory usage
+   - Function Apps: Premium → Consumption plan for low usage
+   - Virtual Machines: Scale down oversized instances
+   
+   **Database Optimizations**:
+   - Cosmos DB: Provisioned → Serverless for variable workloads
+   - SQL Database: Right-size service tiers based on DTU usage
+   
+   **Storage Optimizations**:
+   - Implement lifecycle policies (Hot → Cool → Archive)
+   - Consolidate redundant storage accounts
+   - Right-size storage tiers based on access patterns
+   
+   **Infrastructure Optimizations**:
+   - Remove unused/redundant resources
+   - Implement auto-scaling where beneficial
+   - Schedule non-production environments
 
-### Step 4: Analyze Cost Optimization Opportunities
-**Action**: Generate optimization recommendations based on resource analysis AND usage data
-**Tools**: Local analysis using Azure resource data + Log Analytics metrics
+2. **Calculate Priority Score** for each recommendation:
+   ```
+   Priority Score = (Value Score × Monthly Savings) / (Risk Score × Implementation Days)
+   
+   High Priority: Score > 20
+   Medium Priority: Score 5-20
+   Low Priority: Score < 5
+   ```
+
+3. **Validate Recommendations**:
+   - Ensure Azure CLI commands are accurate
+   - Verify estimated savings calculations
+   - Assess implementation risks and prerequisites
+
+### Step 4: User Confirmation
+**Action**: Present summary and get approval before creating GitHub issues
 **Process**:
-1. Identify optimization opportunities using BOTH configuration and usage analysis:
-   - **Usage-based optimizations** (from Log Analytics KQL queries):
-     - Oversized resources with low CPU/memory utilization (< 20% average)
-     - Underutilized storage accounts with minimal access patterns
-     - Over-provisioned database throughput vs actual RU consumption
-     - Functions with low execution frequency
-     - Web apps with low traffic that could use smaller SKUs
-   - **Configuration-based optimizations** (from IaC and resource configs):
-     - Inefficient SKU selections (Premium when Standard works)
-     - Missing auto-scaling configurations
-     - Redundant or duplicate resources
-     - Non-production resources running 24/7
-     - Missing reserved instance opportunities
-     - Inefficient data storage tiers (Hot when Cool/Archive appropriate)
+1. **Display Optimization Summary**:
+   ```
+   🎯 Azure Cost Optimization Summary
+   
+   📊 Analysis Results:
+   • Total Resources Analyzed: X
+   • Optimization Opportunities: Y
+   • Estimated Monthly Savings: $Z
+   • High Priority Items: N
+   
+   🏆 Recommendations:
+   1. [Title] - $X/month savings - [Risk Level]
+   2. [Title] - $X/month savings - [Risk Level] 
+   3. [Title] - $X/month savings - [Risk Level]
+   ... and so on
+   
+   💡 This will create:
+   • Y individual GitHub issues (one per optimization)
+   • 1 EPIC issue to coordinate implementation
+   
+   ❓ Proceed with creating GitHub issues? (y/n)
+   ```
 
-2. For each recommendation, provide:
-   - **Description**: Clear explanation of the optimization
-   - **Azure CLI Commands**: Exact `az` commands to implement
-   - **Usage Evidence**: KQL query results supporting the recommendation
-   - **Pros**: Benefits (cost savings, performance improvements)
-   - **Cons**: Risks and potential downsides
-   - **Value Score**: 1-10 scale for cost optimization potential
-   - **Risk Score**: 1-10 scale for implementation risk
-   - **Estimated Monthly Savings**: Dollar amount where calculable
+2. **Wait for User Confirmation**: Only proceed if user confirms
 
-### Step 5: Create GitHub Issue
-**Action**: Create comprehensive GitHub issue with findings
-**MCP Tools Required**:
-- `create_issue` - Create the optimization report issue
-
+### Step 5: Create Individual Optimization Issues
+**Action**: Create separate GitHub issues for each optimization opportunity
+**MCP Tools Required**: `create_issue` for each recommendation
 **Process**:
-1. Create detailed GitHub issue with:
-   - **Title**: "Azure Cost Optimization Analysis - [Date]"
-   - **Body** containing:
-     - Executive summary of findings
-     - Infrastructure diagram (Mermaid code block)
-     - Detailed optimization recommendations
-     - Implementation commands for each recommendation
-     - Risk assessment and prioritization matrix
+1. **Create Individual Issues** using this template:
 
-## Issue Template Structure
+   **Title Format**: `[COST-OPT] [Resource Type] - [Brief Description] - $X/month savings`
+   
+   **Body Template**:
+   ```markdown
+   ## 💰 Cost Optimization: [Brief Title]
+   
+   **Monthly Savings**: $X | **Risk Level**: [Low/Medium/High] | **Implementation Effort**: X days
+   
+   ### 📋 Description
+   [Clear explanation of the optimization and why it's needed]
+   
+   ### 🔧 Implementation
+   ```bash
+   # Commands to implement this optimization
+   az [command 1]
+   az [command 2]
+   ```
+   
+   ### 📊 Evidence
+   - Current Configuration: [details]
+   - Usage Pattern: [evidence from monitoring data]
+   - Cost Impact: $X/month → $Y/month
+   
+   ### ✅ Validation Steps
+   - [ ] Test in non-production environment
+   - [ ] Verify no performance degradation
+   - [ ] Confirm cost reduction in Azure Cost Management
+   - [ ] Update monitoring and alerts if needed
+   
+   ### ⚠️ Risks & Considerations
+   - [Risk 1 and mitigation]
+   - [Risk 2 and mitigation]
+   
+   **Priority Score**: X | **Value**: X/10 | **Risk**: X/10
+   ```
 
-```markdown
-# Azure Cost Optimization Analysis
+### Step 6: Create EPIC Coordinating Issue
+**Action**: Create master issue to track all optimization work
+**MCP Tools Required**: `create_issue` for EPIC
+**Process**:
+1. **Create EPIC Issue**:
 
-## Executive Summary
-- **Total Resources Analyzed**: X
-- **Optimization Opportunities Found**: Y  
-- **Estimated Monthly Savings Potential**: $Z
-- **High-Priority Recommendations**: N
-
-## Current Infrastructure Architecture
-
-```mermaid
-[Generated Mermaid diagram]
-```
-
-## Optimization Recommendations
-
-### High Priority (Value: 8-10, Risk: 1-4)
-
-#### 1. [Recommendation Title]
-**Description**: [Detailed explanation]
-**Estimated Monthly Savings**: $X
-**Value Score**: X/10 | **Risk Score**: X/10
-
-**Implementation Commands**:
-```bash
-az [command 1]
-az [command 2]
-```
-
-**Pros**:
-- [Benefit 1]
-- [Benefit 2]
-
-**Cons**:
-- [Risk 1]
-- [Risk 2]
-
----
-
-### Medium Priority (Value: 5-7, Risk: 1-6)
-[Similar format for medium priority items]
-
-### Low Priority (Value: 1-4 or Risk: 7-10)
-[Similar format for low priority items]
-
-## Implementation Roadmap
-1. **Week 1**: [High priority, low risk items]
-2. **Week 2-3**: [Medium priority items with testing]
-3. **Month 2**: [Higher risk items with proper planning]
-
-## Next Steps
-- [ ] Review recommendations with team
-- [ ] Test implementations in non-production environment
-- [ ] Schedule maintenance windows for production changes
-- [ ] Set up monitoring for optimized resources
-```
+   **Title**: `[EPIC] Azure Cost Optimization Initiative - $X/month potential savings`
+   
+   **Body Template**:
+   ```markdown
+   # 🎯 Azure Cost Optimization EPIC
+   
+   **Total Potential Savings**: $X/month | **Implementation Timeline**: X weeks
+   
+   ## 📊 Executive Summary
+   - **Resources Analyzed**: X
+   - **Optimization Opportunities**: Y  
+   - **Total Monthly Savings Potential**: $X
+   - **High Priority Items**: N
+   
+   ## 🏗️ Current Architecture Overview
+   
+   ```mermaid
+   graph TB
+       subgraph "Resource Group: [name]"
+           [Generated architecture diagram showing current resources and costs]
+       end
+   ```
+   
+   ## 📋 Implementation Tracking
+   
+   ### 🚀 High Priority (Implement First)
+   - [ ] #[issue-number]: [Title] - $X/month savings
+   - [ ] #[issue-number]: [Title] - $X/month savings
+   
+   ### ⚡ Medium Priority 
+   - [ ] #[issue-number]: [Title] - $X/month savings
+   - [ ] #[issue-number]: [Title] - $X/month savings
+   
+   ### 🔄 Low Priority (Nice to Have)
+   - [ ] #[issue-number]: [Title] - $X/month savings
+   
+   ## 📈 Progress Tracking
+   - **Completed**: 0 of Y optimizations
+   - **Savings Realized**: $0 of $X/month
+   - **Implementation Status**: Not Started
+   
+   ## 🎯 Success Criteria
+   - [ ] All high-priority optimizations implemented
+   - [ ] >80% of estimated savings realized
+   - [ ] No performance degradation observed
+   - [ ] Cost monitoring dashboard updated
+   
+   ## 📝 Notes
+   - Review and update this EPIC as issues are completed
+   - Monitor actual vs. estimated savings
+   - Consider scheduling regular cost optimization reviews
+   ```
 
 ## Error Handling
-- If Azure MCP tools fail, note in issue and provide manual verification steps
-- If no IaC files found, create issue noting need for Infrastructure-as-Code adoption
-- If GitHub issue creation fails, output the formatted report to console
+- **Azure Authentication Failure**: Provide manual Azure CLI setup steps
+- **No Resources Found**: Create informational issue about Azure resource deployment
+- **GitHub Creation Failure**: Output formatted recommendations to console
+- **Insufficient Usage Data**: Note limitations and provide configuration-based recommendations only
 
 ## Success Criteria
-- Infrastructure diagram accurately represents current state
-- Optimization recommendations are actionable with specific commands
-- Risk assessment helps prioritize implementation
-- GitHub issue serves as implementation tracking tool
+- ✅ Individual issues created for each optimization (trackable and assignable)
+- ✅ EPIC issue provides comprehensive coordination and tracking
+- ✅ All recommendations include specific, executable Azure CLI commands
+- ✅ Priority scoring enables ROI-focused implementation
+- ✅ Architecture diagram accurately represents current state
+- ✅ User confirmation prevents unwanted issue creation
 
 ## Notes
-- This workflow focuses on cost optimization, not security or compliance
+- This workflow is architecture-agnostic and adapts to any Azure deployment
+- Focus on cost optimization, not security or compliance
 - Recommendations should be validated in non-production environments first
 - Consider business requirements and SLAs when implementing optimizations
-- Regular execution (monthly/quarterly) helps maintain cost efficiency
+- Regular execution (monthly/quarterly) maintains cost efficiency

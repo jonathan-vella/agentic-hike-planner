@@ -1,0 +1,164 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.36.1.42791",
+      "templateHash": "199773179064540954"
+    }
+  },
+  "parameters": {
+    "budgetName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the budget"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "metadata": {
+        "description": "The environment (dev, staging, prod)"
+      }
+    },
+    "alertEmail": {
+      "type": "string",
+      "defaultValue": "demo@example.com",
+      "metadata": {
+        "description": "The email address for budget alerts"
+      }
+    },
+    "budgetAmount": {
+      "type": "int",
+      "defaultValue": "[if(equals(parameters('environment'), 'prod'), 100, if(equals(parameters('environment'), 'staging'), 50, 25))]",
+      "metadata": {
+        "description": "Budget amount in USD - intentionally low for demo cost protection"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Consumption/budgets",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('budgetName')]",
+      "properties": {
+        "category": "Cost",
+        "amount": "[parameters('budgetAmount')]",
+        "timeGrain": "Monthly",
+        "timePeriod": {
+          "startDate": "2024-01-01",
+          "endDate": "2025-12-31"
+        },
+        "filter": {
+          "dimensions": {
+            "name": "ResourceGroupName",
+            "operator": "In",
+            "values": [
+              "[resourceGroup().name]"
+            ]
+          }
+        },
+        "notifications": {
+          "notification50": {
+            "enabled": true,
+            "operator": "GreaterThan",
+            "threshold": 50,
+            "contactEmails": [
+              "[parameters('alertEmail')]"
+            ],
+            "contactRoles": [
+              "Owner",
+              "Contributor"
+            ]
+          },
+          "notification80": {
+            "enabled": true,
+            "operator": "GreaterThan",
+            "threshold": 80,
+            "contactEmails": [
+              "[parameters('alertEmail')]"
+            ],
+            "contactRoles": [
+              "Owner",
+              "Contributor"
+            ]
+          },
+          "notification100": {
+            "enabled": true,
+            "operator": "GreaterThan",
+            "threshold": 100,
+            "contactEmails": [
+              "[parameters('alertEmail')]"
+            ],
+            "contactRoles": [
+              "Owner",
+              "Contributor"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/actionGroups",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}-alerts', parameters('budgetName'))]",
+      "location": "Global",
+      "properties": {
+        "groupShortName": "CostAlert",
+        "enabled": true,
+        "emailReceivers": [
+          {
+            "name": "CostAlertEmail",
+            "emailAddress": "[parameters('alertEmail')]",
+            "useCommonAlertSchema": true
+          }
+        ]
+      },
+      "tags": {
+        "Environment": "[parameters('environment')]",
+        "Application": "HikePlanner",
+        "CostCenter": "Demo",
+        "AlertType": "CostManagement"
+      }
+    }
+  ],
+  "outputs": {
+    "budgetId": {
+      "type": "string",
+      "metadata": {
+        "description": "The resource ID of the budget"
+      },
+      "value": "[resourceId('Microsoft.Consumption/budgets', parameters('budgetName'))]"
+    },
+    "budgetName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the budget"
+      },
+      "value": "[parameters('budgetName')]"
+    },
+    "actionGroupId": {
+      "type": "string",
+      "metadata": {
+        "description": "The resource ID of the action group"
+      },
+      "value": "[resourceId('Microsoft.Insights/actionGroups', format('{0}-alerts', parameters('budgetName')))]"
+    },
+    "budgetSummary": {
+      "type": "object",
+      "metadata": {
+        "description": "Budget configuration summary"
+      },
+      "value": {
+        "budgetAmount": "[parameters('budgetAmount')]",
+        "environment": "[parameters('environment')]",
+        "thresholds": [
+          50,
+          80,
+          100
+        ],
+        "alertEmail": "[parameters('alertEmail')]"
+      }
+    }
+  }
+}

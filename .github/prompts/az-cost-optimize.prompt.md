@@ -42,10 +42,11 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
      - `az redis list` - Redis Cache (fallback)
      - ... and so on for other resource types
 
-2. **IaC Analysis** (if available):
-   - Scan workspace for IaC files: ARM templates (*.json), Bicep files (*.bicep), Terraform files (*.tf)
+2. **IaC Detection**:
+   - Use `file_search` to scan for IaC files: "**/*.bicep", "**/*.tf", "**/main.json", "**/*template*.json"
    - Parse resource definitions to understand intended configurations
-   - Compare IaC definitions with deployed resources to identify drift
+   - Compare against discovered resources to identify discrepancies
+   - Note presence of IaC files for implementation recommendations later on
 
 3. **Configuration Analysis**:
    - Extract current SKUs, tiers, and settings for each resource
@@ -176,10 +177,18 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
    [Clear explanation of the optimization and why it's needed]
    
    ### 🔧 Implementation
+   
+   **IaC Files Detected**: [Yes/No - based on file_search results]
+   
    ```bash
-   # Commands to implement this optimization
-   az [command 1]
-   az [command 2]
+   # If IaC files found: Show IaC modifications + deployment
+   # File: infrastructure/bicep/modules/app-service.bicep
+   # Change: sku.name: 'S3' → 'B2'
+   az deployment group create --resource-group [rg] --template-file infrastructure/bicep/main.bicep
+   
+   # If no IaC files: Direct Azure CLI commands + warning
+   # ⚠️ No IaC files found. If they exist elsewhere, modify those instead.
+   az appservice plan update --name [plan] --sku B2
    ```
    
    ### 📊 Evidence

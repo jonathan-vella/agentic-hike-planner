@@ -10,14 +10,14 @@ param environment string
 @description('Enable free tier (only one per subscription)')
 param enableFreeTier bool = false
 
-@description('Throughput mode for Cosmos DB - Demo uses intentionally inefficient provisioned mode')
+@description('Throughput mode for Cosmos DB')
 @allowed(['provisioned', 'serverless'])
 param throughputMode string = 'provisioned'
 
-@description('Minimum throughput for provisioned mode - Intentionally high for demo (1,000 RU/s as per demo.md)')
+@description('Minimum throughput for provisioned mode')
 param minThroughput int = 1000
 
-@description('Maximum throughput for autoscale - Intentionally high for demo')
+@description('Maximum throughput for autoscale')
 param maxThroughput int = 4000
 
 var cosmosDbSettings = {

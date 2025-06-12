@@ -7,7 +7,7 @@ param environment string
 @description('The email address for budget alerts')
 param alertEmail string = 'demo@example.com'
 
-@description('Budget amount in USD - intentionally low for demo cost protection')
+@description('Budget amount in USD')
 param budgetAmount int = environment == 'prod' ? 100 : (environment == 'staging' ? 50 : 25)
 
 // Budget for cost monitoring and alerts - scoped to current resource group

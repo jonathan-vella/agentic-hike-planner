@@ -68,7 +68,6 @@ resource appService 'Microsoft.Web/sites@2023-01-01' = {
     Environment: environment
     Application: 'HikePlanner'
     CostCenter: 'Demo'
-    CostOptimization: 'Connected'
     ServiceTier: 'Backend'
   }
   identity: {

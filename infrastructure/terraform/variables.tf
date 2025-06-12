@@ -19,7 +19,7 @@ variable "app_name" {
   default     = "hike-planner"
 }
 
-# Phase 1: Cosmos DB configuration - Intentionally inefficient for demo
+# Cosmos DB configuration
 variable "enable_cosmos_db_free_tier" {
   description = "Enable free tier for Cosmos DB (only one per subscription)"
   type        = bool
@@ -27,7 +27,7 @@ variable "enable_cosmos_db_free_tier" {
 }
 
 variable "cosmos_db_throughput_mode" {
-  description = "Cosmos DB throughput mode - Phase 1 uses intentionally inefficient provisioned mode for demo"
+  description = "Cosmos DB throughput mode"
   type        = string
   default     = "provisioned"
   validation {
@@ -37,13 +37,13 @@ variable "cosmos_db_throughput_mode" {
 }
 
 variable "cosmos_db_min_throughput" {
-  description = "Minimum throughput for provisioned mode - Intentionally high (1,000 RU/s) for demo as per demo.md"
+  description = "Minimum throughput for provisioned mode"
   type        = number
   default     = 1000
 }
 
 variable "cosmos_db_max_throughput" {
-  description = "Maximum throughput for autoscale - Intentionally high for demo"
+  description = "Maximum throughput for autoscale"
   type        = number
   default     = 4000
 }

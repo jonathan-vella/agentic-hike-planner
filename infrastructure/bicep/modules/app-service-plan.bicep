@@ -7,13 +7,13 @@ param location string = resourceGroup().location
 @description('The environment (dev, staging, prod)')
 param environment string
 
-@description('The SKU name - Intentionally over-provisioned Standard S3 for cost demo')
+@description('The SKU name for the App Service Plan')
 param skuName string = 'S3'
 
 @description('The SKU capacity')
 param skuCapacity int = 1
 
-// Intentionally over-provisioned App Service Plan for cost optimization demo
+// App Service Plan resource
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   name: appServicePlanName
   location: location
@@ -29,9 +29,6 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
     Environment: environment
     Application: 'HikePlanner'
     CostCenter: 'Demo'
-    CostOptimization: 'OverProvisioned'
-    OptimalSku: 'B2'  // Tracking what it should be for cost optimization
-    WastageReason: 'Standard-S3-vs-Basic-B2'
   }
 }
 

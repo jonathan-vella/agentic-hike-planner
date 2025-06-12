@@ -9,7 +9,6 @@
     ],
     "servers": {
         "github-com": {
-            "type": "stdio",
             "command": "docker",
             "args": [
                 "run",
@@ -17,7 +16,7 @@
                 "--rm",
                 "-e",
                 "GITHUB_PERSONAL_ACCESS_TOKEN",
-                "ghcr.io/github/github-mcp-server:main"
+                "ghcr.io/github/github-mcp-server"
             ],
             "env": {
                 "GITHUB_PERSONAL_ACCESS_TOKEN": "${input:github-pat}"

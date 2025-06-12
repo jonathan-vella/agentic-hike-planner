@@ -98,7 +98,6 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
    - Calculate realistic current monthly total before proceeding to recommendations
 
 ### Step 4: Generate Cost Optimization Recommendations
-### Step 4: Generate Cost Optimization Recommendations
 **Action**: Analyze resources to identify optimization opportunities
 **Tools**: Local analysis using collected data
 **Process**:
@@ -174,7 +173,7 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
 2. **Wait for User Confirmation**: Only proceed if user confirms
 
 ### Step 6: Create Individual Optimization Issues
-**Action**: Create separate GitHub issues for each optimization opportunity
+**Action**: Create separate GitHub issues for each optimization opportunity. Label them with "cost-optimization" (green color), "azure" (blue color).
 **MCP Tools Required**: `create_issue` for each recommendation
 **Process**:
 1. **Create Individual Issues** using this template:
@@ -225,8 +224,9 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
    ```
 
 ### Step 7: Create EPIC Coordinating Issue
-**Action**: Create master issue to track all optimization work
+**Action**: Create master issue to track all optimization work. Label it with "cost-optimization" (green color), "azure" (blue color), and "epic" (purple color).
 **MCP Tools Required**: `create_issue` for EPIC
+**Note about mermaid diagrams**: Ensure you verify mermaid syntax is correct and create the diagrams taking accessibility guidelines into account (styling, colors, etc.).
 **Process**:
 1. **Create EPIC Issue**:
 

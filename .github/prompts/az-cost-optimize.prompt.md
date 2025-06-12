@@ -8,27 +8,39 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
 - GitHub MCP server configured and authenticated  
 - Target GitHub repository identified
 - Azure resources deployed (IaC files optional but helpful)
+- Prefer Azure MCP tools (`azmcp-*`) over direct Azure CLI when available
 
 ## Workflow Steps
 
-### Step 1: Discover Azure Infrastructure
+### Step 1: Get Azure Best Practices
+**Action**: Retrieve cost optimization best practices before analysis
+**Tools**: Azure MCP best practices tool
+**Process**:
+1. **Load Best Practices**:
+   - Execute `azmcp-bestpractices-get` to get some of the latest Azure optimization guidelines. This may not cover all scenarios but provides a foundation.
+   - Use these practices to inform subsequent analysis and recommendations as possible
+   - Reference best practices in optimization recommendations, either from the MCP tool output or general Azure documentation
+
+### Step 2: Discover Azure Infrastructure
 **Action**: Dynamically discover and analyze Azure resources and configurations
-**Tools**: Azure CLI execution + Local file system access
+**Tools**: Azure MCP tools + Azure CLI fallback + Local file system access
 **Process**:
 1. **Resource Discovery**:
-   - Execute `az group list` to find all resource groups
-   - Execute `az resource list --query "[].{name:name, type:type, resourceGroup:resourceGroup, location:location}"` 
-   - For each resource type found, execute specific list commands:
-     - `az webapp list` - Web Apps and App Service Plans
-     - `az functionapp list` - Function Apps
-     - `az storage account list` - Storage Accounts
-     - `az cosmosdb list` - Cosmos DB Accounts
-     - `az vm list` - Virtual Machines
-     - `az sql server list` - SQL Servers and Databases
-     - `az redis list` - Redis Cache instances
-     - `az cdn profile list` - CDN Profiles
-     - `az keyvault list` - Key Vaults
-     - `az monitor app-insights component list` - Application Insights
+   - Execute `azmcp-subscription-list` to find available subscriptions
+   - Execute `azmcp-group-list --subscription <subscription-id>` to find resource groups
+   - Get a list of all resources in the relevant group(s):
+     - Use `az resource list --subscription <id> --resource-group <name>`
+   - For each resource type, use MCP tools first if possible, then CLI fallback:
+     - `azmcp-cosmos-account-list --subscription <id>` - Cosmos DB accounts
+     - `azmcp-storage-account-list --subscription <id>` - Storage accounts  
+     - `azmcp-monitor-workspace-list --subscription <id>` - Log Analytics workspaces
+     - `azmcp-keyvault-key-list` - Key Vaults
+     - `az webapp list` - Web Apps (fallback - no MCP tool available)
+     - `az appservice plan list` - App Service Plans (fallback)
+     - `az functionapp list` - Function Apps (fallback)
+     - `az sql server list` - SQL Servers (fallback)
+     - `az redis list` - Redis Cache (fallback)
+     - ... and so on for other resource types
 
 2. **IaC Analysis** (if available):
    - Scan workspace for IaC files: ARM templates (*.json), Bicep files (*.bicep), Terraform files (*.tf)
@@ -40,22 +52,26 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
    - Identify resource relationships and dependencies
    - Map resource utilization patterns where available
 
-### Step 2: Collect Usage Metrics
+### Step 3: Collect Usage Metrics
 **Action**: Gather performance and utilization data from Azure Monitor
-**Tools**: Azure Monitor MCP tools + Azure CLI
+**Tools**: Azure MCP monitoring tools + Azure CLI fallback
 **Process**:
 1. **Find Monitoring Sources**:
-   - Execute `az monitor log-analytics workspace list` to find Log Analytics workspaces
-   - Use Azure MCP: `azmcp monitor workspace list` and `azmcp monitor table list`
+   - Use `azmcp-monitor-workspace-list --subscription <id>` to find Log Analytics workspaces
+   - Use `azmcp-monitor-table-list --subscription <id> --workspace <name> --table-type "CustomLog"` to discover available data
 
-2. **Execute Usage Queries** (sample KQL queries):
+2. **Execute Usage Queries**:
+   - Use `azmcp-monitor-log-query` with these predefined queries:
+     - Query: "recent" for recent activity patterns
+     - Query: "errors" for error-level logs indicating issues
+   - For custom analysis, use KQL queries:
    ```kql
    // CPU utilization for App Services
    AppServiceAppLogs
    | where TimeGenerated > ago(7d)
    | summarize avg(CpuTime) by Resource, bin(TimeGenerated, 1h)
    
-   // Cosmos DB RU consumption
+   // Cosmos DB RU consumption  
    AzureDiagnostics
    | where ResourceProvider == "MICROSOFT.DOCUMENTDB"
    | where TimeGenerated > ago(7d)
@@ -85,7 +101,9 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
    - Virtual Machines: Scale down oversized instances
    
    **Database Optimizations**:
-   - Cosmos DB: Provisioned → Serverless for variable workloads
+   - Cosmos DB: 
+     - Provisioned → Serverless for variable workloads
+     - Right-size RU/s based on actual usage
    - SQL Database: Right-size service tiers based on DTU usage
    
    **Storage Optimizations**:
@@ -98,7 +116,7 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
    - Implement auto-scaling where beneficial
    - Schedule non-production environments
 
-2. **Calculate Priority Score** for each recommendation:
+3. **Calculate Priority Score** for each recommendation:
    ```
    Priority Score = (Value Score × Monthly Savings) / (Risk Score × Implementation Days)
    
@@ -112,7 +130,7 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
    - Verify estimated savings calculations
    - Assess implementation risks and prerequisites
 
-### Step 4: User Confirmation
+### Step 5: User Confirmation
 **Action**: Present summary and get approval before creating GitHub issues
 **Process**:
 1. **Display Optimization Summary**:
@@ -140,7 +158,7 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
 
 2. **Wait for User Confirmation**: Only proceed if user confirms
 
-### Step 5: Create Individual Optimization Issues
+### Step 6: Create Individual Optimization Issues
 **Action**: Create separate GitHub issues for each optimization opportunity
 **MCP Tools Required**: `create_issue` for each recommendation
 **Process**:
@@ -168,6 +186,7 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
    - Current Configuration: [details]
    - Usage Pattern: [evidence from monitoring data]
    - Cost Impact: $X/month → $Y/month
+   - Best Practice Alignment: [reference to Azure best practices if applicable]
    
    ### ✅ Validation Steps
    - [ ] Test in non-production environment
@@ -182,7 +201,7 @@ This workflow analyzes Infrastructure-as-Code (IaC) files and Azure resources to
    **Priority Score**: X | **Value**: X/10 | **Risk**: X/10
    ```
 
-### Step 6: Create EPIC Coordinating Issue
+### Step 7: Create EPIC Coordinating Issue
 **Action**: Create master issue to track all optimization work
 **MCP Tools Required**: `create_issue` for EPIC
 **Process**:

@@ -1,3 +1,11 @@
+---
+mode: agent
+description: Guide an AI agent through a structured process to analyze Azure resources and optimize costs - creating GitHub issues for identified optimizations.
+author: Daniel Meppiel
+mcp:
+  - ghcr.io/github/github-mcp-server
+---
+
 # Azure Cost Optimization Workflow
 
 ## Overview
